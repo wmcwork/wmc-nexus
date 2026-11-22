@@ -86,7 +86,19 @@ $previousLocation = Get-Location
 try {
     Set-Location $webDirectory
     Invoke-NativeCommand -Path $npmCommand.Source -Arguments @("ci") -Description "npm ci"
-    Invoke-NativeCommand -Path $npmCommand.Source -Arguments @("run", "build:static") -Description "Frontend build"
+    $previousNextExport = $env:NEXT_EXPORT
+    try {
+        $env:NEXT_EXPORT = "1"
+        Invoke-NativeCommand -Path $npmCommand.Source -Arguments @("run", "build") -Description "Frontend build"
+    }
+    finally {
+        if ($null -eq $previousNextExport) {
+            Remove-Item Env:\NEXT_EXPORT -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:NEXT_EXPORT = $previousNextExport
+        }
+    }
 }
 finally {
     Set-Location $previousLocation

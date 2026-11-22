@@ -23,20 +23,23 @@ approved (reviewed for this release).
 | engagement-scoping | Scope, RoE, contacts, stop conditions | read-only | draft | first-party (2026-11-22) |
 | passive-recon | External attack-surface mapping without target traffic | read-only | draft | first-party (2026-11-22) |
 | evidence-and-reporting | Evidence, redaction, severity, reporting | read-only | draft | first-party (2026-11-22) |
+| active-recon | Approved active discovery with rate limits | gated | draft | first-party (2026-11-22) |
+| web-app-testing | WSTG-aligned web application testing | gated | draft | first-party (2026-11-22) |
+| auth-session-testing | Authentication, MFA and session lifecycle | gated | draft | first-party (2026-11-22) |
+| ad-enumeration | Domain and ACL path analysis | read-only | draft | first-party (2026-11-22) |
+| cloud-recon | AWS/Azure/GCP read-only posture review | read-only | draft | first-party (2026-11-22) |
+| phishing-simulation | Authorized campaign design and reporting | gated | draft | first-party (2026-11-22) |
+| c2-operations | Operator workflow, logging and teardown | gated | draft | first-party (2026-11-22) |
+| opsec-and-cleanup | Attribution, deconfliction, artefact cleanup | read-only | draft | first-party (2026-11-22) |
 
-## Planned catalog
+## Next wave
 
-The following are designed but not yet authored. Each needs the same review
-and dry-run before it appears above.
+Designed but not yet authored. Each needs the same review and dry-run before
+it appears above.
 
-- `active-recon` - approved active discovery with rate limits.
-- `web-app-testing` - WSTG-aligned workflow with gated exploitation.
-- `auth-session-testing` - authentication, MFA and session lifecycle.
-- `ad-enumeration` - domain and ACL path analysis, read-only.
-- `cloud-recon` - AWS/Azure/GCP read-only posture review.
-- `phishing-simulation` - authorized campaign design and reporting.
-- `c2-operations` - operator workflow and teardown, gated.
-- `opsec-and-cleanup` - logging, artefact control, deconfliction.
+- `container-kubernetes-testing` - cluster and workload configuration review.
+- `mobile-app-testing` - Android/iOS testing with provisioned builds.
+- `purple-detection-validation` - ATT&CK mapping and detection checks.
 
 ## Review requirements
 

@@ -9,9 +9,13 @@ __pycache__/
 *.pyc
 *.pyo
 
+# build artifacts
+/dist/
+
 # frontend
 web/node_modules/
 web/.next/
+web/out/
 web/tsconfig.tsbuildinfo
 web/next-env.d.ts
 *.local

@@ -138,12 +138,13 @@ export const VERIFICATION_META: Record<VerificationStatus, { label: string; tone
 // no verification status (in-task nodes, payloads from before the column existed).
 export function VerificationBadge({ finding }: { finding: Pick<Finding, "verification_status" | "poe_level"> }) {
   const { t } = useLocale();
-  const meta = finding.verification_status ? VERIFICATION_META[finding.verification_status] : undefined;
-  if (!meta) return null;
+  const status = finding.verification_status;
+  const meta = status ? VERIFICATION_META[status] : undefined;
+  if (!status || !meta) return null;
   const label =
-    finding.verification_status === "verified" && finding.poe_level
-      ? `${t(VERIFICATION_TRANSLATIONS[finding.verification_status])} L${finding.poe_level}`
-      : t(VERIFICATION_TRANSLATIONS[finding.verification_status]);
+    status === "verified" && finding.poe_level
+      ? `${t(VERIFICATION_TRANSLATIONS[status])} L${finding.poe_level}`
+      : t(VERIFICATION_TRANSLATIONS[status]);
   return (
     <span
       className={cn(

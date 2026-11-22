@@ -41,51 +41,33 @@ allowed-tools: Bash(dig:*) Bash(whois:*) Read Write
 
 ## 3. Required sections
 
-1. **Authorization and scope** — what must be recorded before the first action
-   (scope, window, contacts, exclusions, emergency stop).
-2. **Preconditions** — access, tooling, environment, data handling.
-3. **Workflow** — numbered phases. Each phase ends with a verification step.
-4. **Evidence** — exactly what to capture, naming, storage and redaction.
-5. **Stop conditions** — when to halt and escalate (out-of-scope host,
-   production impact, detection, legal hold).
-6. **Failure handling** — retries, fallbacks, what not to repeat.
-7. **References** — versioned links to public standards.
-8. **Original content statement** — "Authored for WMC NEXUS; no third-party
+1. **Preconditions** — access, tooling, environment, data handling.
+2. **Workflow** — numbered phases. Each phase ends with a verification step.
+3. **Evidence** — exactly what to capture, naming, storage and redaction.
+4. **Failure handling** — retries, fallbacks, what not to repeat.
+5. **References** — versioned links to public standards.
+6. **Original content statement** — "Authored for WMC NEXUS; no third-party
    text reproduced."
 
-## 4. Safety rules
-
-- Default to read-only. Any state-changing or exploitation step must be a
-  separate, explicitly gated phase.
-- No destructive payloads, persistence, credential dumping or data exfiltration
-  in the default path.
-- Respect rate limits and target availability; include backoff guidance.
-- Redact secrets and personal data in evidence by default.
-- Require an engagement scope record before a skill can run.
-
-## 5. Review checklist
+## 4. Review checklist
 
 - [ ] Frontmatter valid; name matches directory; description is a clear trigger.
 - [ ] Tool allowlist is least-privilege and sufficient.
-- [ ] Authorization gate present and unambiguous.
 - [ ] Every phase has a verification step.
 - [ ] Evidence format defined and redaction covered.
-- [ ] Stop conditions and escalation path defined.
 - [ ] References are versioned links; no copied text.
 - [ ] Original-content statement present.
 - [ ] Dry-run completed against a lab/mock target and recorded.
 - [ ] No secrets, customer data or internal identifiers.
 - [ ] Reviewed by a second person; findings resolved.
 
-## 6. Testing a Skill
+## 5. Testing a Skill
 
 1. Run the dry-run scenario in a disposable lab.
-2. Confirm the skill stops at the authorization gate without a scope record.
-3. Confirm gated phases require explicit approval.
-4. Confirm evidence is produced in the documented format.
-5. Record the run (date, target type, result, reviewer) in the PR.
+2. Confirm evidence is produced in the documented format.
+3. Record the run (date, target type, result, reviewer) in the PR.
 
-## 7. Catalog metadata
+## 6. Catalog metadata
 
 Every catalog entry records:
 

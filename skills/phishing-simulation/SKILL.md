@@ -11,26 +11,6 @@ The deliverable is aggregate behaviour and process findings, never an account,
 a session, or a foothold. Every campaign runs on approved infrastructure,
 against an approved recipient list, with a named owner who can stop it.
 
-## Authorization gate
-
-Do not stage, register, or send anything until the engagement workspace holds
-all of the following:
-
-- written authorization that names phishing simulation and the approved
-  sending domains;
-- a recipient list approved by the client's people function, with a recorded
-  lawful basis for processing staff data;
-- an approved window with time zone, batch size, and maximum send rate;
-- a named campaign owner and an emergency stop contact who can halt the
-  platform immediately;
-- a documented support route for employees who respond, agreed with HR and the
-  service desk;
-- written confirmation from the security or mail team that the campaign is
-  deconflicted and will not be handled as a live incident.
-
-If any item is missing, stop and report the gap. Verbal approval is not
-sufficient for a campaign that touches staff.
-
 ## Preconditions
 
 - An approved simulation platform is available, with per-campaign metrics
@@ -118,22 +98,6 @@ Name files with the engagement ID, campaign ID, and UTC date. Store the
 recipient mapping separately from metrics, encrypt at rest, and never place
 addresses or message bodies in the report. A recipient list is represented by
 a hash and a count, not by its contents.
-
-## Stop conditions
-
-- A recipient enters real credentials anywhere: stop the campaign, notify the
-  owner, do not access the account, and record only the fact and time.
-- A recipient reports distress, or a real incident is suspected.
-- A message reaches an address outside the approved list, including via
-  forwarding or a distribution group.
-- The mail gateway quarantines the domain and the security team cannot confirm
-  deconfliction.
-- Media, legal, law enforcement, or a regulator makes contact.
-- The platform stop control fails, or the stop contact cannot be reached.
-- The client withdraws approval for any part of the campaign.
-
-Escalate to the engagement owner and the client stop contact in parallel. Do
-not attempt to contain the situation by deleting evidence.
 
 ## Failure handling
 

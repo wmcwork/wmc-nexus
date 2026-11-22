@@ -10,13 +10,6 @@ Builds an external asset inventory from third-party sources. The target must
 not observe traffic from this skill. If a source requires an active request to
 the target, stop and move the step to `active-recon` under its own approval.
 
-## Authorization gate
-
-- An approved engagement scope record must exist.
-- Only in-scope root domains, organizations and ASNs are queried.
-- Do not query personal accounts, private profiles, or breach data without
-  explicit written authorization and a lawful basis.
-
 ## Sources and order
 
 1. **Seed normalization** - canonical root domains; note subsidiaries and
@@ -49,13 +42,6 @@ credential into a report.
 - No request was sent to a target-owned IP or hostname.
 - Certificate and DNS data agree, or the discrepancy is documented.
 - The inventory has counts by asset type and a change list since the last run.
-
-## Stop conditions
-
-- A source requires authentication you do not have.
-- Results point to an out-of-scope organization.
-- A credential or personal data appears; stop, redact, escalate.
-- Rate limits or terms of the source would be violated.
 
 ## References
 

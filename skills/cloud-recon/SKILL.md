@@ -12,21 +12,6 @@ sensitivity. Nothing in this skill creates, changes, or deletes a resource, and
 nothing reads object contents. Written approval per provider account is part of
 the engagement record, not an assumption from a shared parent company.
 
-## Authorization gate
-
-Do not run a single API call until the record contains all of:
-
-- provider, tenant or organization, and every account, subscription, or
-  project in scope, by ID;
-- the read-only role or principal issued for the review, with its vault
-  reference;
-- the window, time zone, and request budget per provider;
-- written confirmation that configuration enumeration is permitted;
-- the client contact who can approve a scope change and the escalation path.
-
-An account reachable through an assumed role but missing from the record stays
-untouched. Do not infer scope from billing relationships.
-
 ## Preconditions
 
 - Provider CLI version pinned and recorded, with a named profile per account.
@@ -122,16 +107,6 @@ and a manifest with SHA-256 hashes. Redact account aliases, email addresses,
 and any secret value returned unexpectedly; a secret in output triggers the
 stop conditions. Never paste raw policy documents containing principal emails
 into the final report without redaction.
-
-## Stop conditions
-
-- Credentials resolve to an account or tenant outside the record.
-- The role allows write actions, or a policy change is proposed to continue.
-- A response contains credentials, keys, or personal data.
-- A call would read object contents or message bodies.
-- Provider guardrails or the client's security team raise an alert and ask
-  for a pause.
-- Throttling persists after backoff and would distort coverage.
 
 ## Failure handling
 

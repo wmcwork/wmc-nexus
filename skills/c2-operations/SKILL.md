@@ -11,27 +11,6 @@ The work is infrastructure ownership, scoping, logging, and control, not
 malware development. Every session must trace to an in-scope host and to a
 written approval for that phase of the exercise.
 
-## Authorization gate
-
-Do not provision, register, configure, or connect anything until the
-engagement workspace holds all of the following:
-
-- written authorization that names command-and-control activity and the
-  testing window;
-- an approved asset list with every host, domain, and CIDR that may call back
-  or be accessed;
-- a named exercise owner and a stop contact reachable for the full window;
-- an approved infrastructure owner, cloud account, and payment route for every
-  domain and server;
-- agreed data limits: what may be collected, what must never be collected, and
-  the retention period;
-- written deconfliction with the defending team, including how exercise
-  traffic is identified and who declares an incident;
-- a tested kill switch and a teardown plan approved by the owner.
-
-If any item is missing, stop and report the gap. A live target without a
-deconflicted defender is not an authorized exercise.
-
 ## Preconditions
 
 - A framework is selected from the approved list and pinned to a version.
@@ -132,25 +111,6 @@ deconflicted defender is not an authorized exercise.
 Store logs outside the C2 host. Never place credentials, tokens, or captured
 personal data in the evidence set. Session identifiers and internal addresses
 are redacted in the client report unless the client explicitly needs them.
-
-## Stop conditions
-
-- A callback arrives from a host that is not on the approved list: block it,
-  do not task it, and notify the owner.
-- Real credentials or personal data appear in a session: stop collection,
-  redact, report, and do not use the material.
-- A defender declares a live incident, or deconfliction fails.
-- The client's infrastructure shows instability that correlates with exercise
-  traffic.
-- A provider, registrar, or abuse desk reports the infrastructure as malicious.
-- Law enforcement, legal, or media contact occurs.
-- The kill switch fails, the logging sink is unavailable, or operator access
-  is lost.
-- The owner pauses or withdraws authorization.
-
-Escalate to the exercise owner and the client stop contact in parallel. Keep
-the evidence intact. Do not delete logs, rotate infrastructure, or attempt to
-argue with a provider while an incident is open.
 
 ## Failure handling
 

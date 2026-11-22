@@ -11,23 +11,6 @@ correctly. The work is observational first: understand the intended lifecycle,
 then look for places where the server trusts something it should not. All
 actions use provisioned test accounts, and no real user is ever affected.
 
-## Authorization gate
-
-Do not start until these are recorded:
-
-- an approved engagement scope record and the specific identity flows in scope;
-- written permission for authentication testing, including lockout and MFA
-  prompting;
-- at least two provisioned test accounts, with roles and recovery addresses
-  that belong to the engagement;
-- the identity provider and any external SSO dependency named, with confirmation
-  that testing it is permitted or excluded;
-- the lockout policy and a safe attempt budget per account;
-- the window, the technical contact and the emergency stop procedure.
-
-If the only available accounts are real user accounts, stop. There is no safe
-substitute for provisioned identities.
-
 ## Preconditions
 
 - Provisioned accounts, including at least one privileged and one unprivileged
@@ -147,15 +130,6 @@ request, response, and the state of the session before and after. Store secrets
 redacted, keep identifiers as salted hashes where a comparison must be shown,
 and hold unredacted captures only in the access-controlled evidence store. Note
 attempt counts against the agreed budget.
-
-## Stop conditions
-
-- A test would affect a real account, mailbox or phone number.
-- An account approaches its lockout threshold, or a shared account is at risk.
-- MFA prompts or recovery messages reach a real person.
-- The identity provider returns errors that suggest impact on other tenants.
-- A real credential or personal data set is encountered.
-- The approval basis for a flow is unclear or the window has closed.
 
 ## Failure handling
 

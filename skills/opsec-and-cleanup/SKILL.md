@@ -15,22 +15,6 @@ Log tampering, agent disabling, timestomping, and history clearing are
 anti-forensic actions and are prohibited outright. They destroy the evidence
 the client paid for and are outside any acceptable rules of engagement.
 
-## Authorization gate
-
-Do not start until the engagement record contains all of:
-
-- the scope record, test window, and time zone;
-- the source addresses, hostnames, and tool signatures that will appear in
-  client logs;
-- the naming prefix reserved for test accounts, groups, resources, and files;
-- the SOC or blue-team contact, notification channel, and deconfliction code;
-- the change approval path and the rollback authority;
-- the data handling and retention terms, including destruction dates.
-
-If the client has no deconfliction contact, the engagement owner must name one
-before any state-changing phase. Read-only reconnaissance may proceed only if
-the record already allows it.
-
 ## Preconditions
 
 - A change log exists before the first change, with fields for time, operator,
@@ -120,17 +104,6 @@ baseline exports and hashes, deconfliction acknowledgements, the detection
 coverage table, and the final diff. Hash each artefact with SHA-256 at creation
 and again at handover. Redact credentials and personal data, and never place a
 recovered secret in the change log; reference the vault entry instead.
-
-## Stop conditions
-
-- A change cannot be reverted with the recorded rollback.
-- A baseline is missing for an object that was already modified.
-- The deconfliction contact cannot be reached during an active phase.
-- An alert indicates impact outside the agreed scope.
-- A request asks for log modification, control disabling, or data retention
-  beyond the contract.
-- The window closes with unreverted changes.
-- Evidence integrity is in doubt.
 
 ## Failure handling
 

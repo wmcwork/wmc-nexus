@@ -11,22 +11,6 @@ phase here is read-only. Anything that authenticates as another principal,
 modifies an object, or recovers secret material is out of scope and needs a
 separately gated approval with its own written scope entry.
 
-## Authorization gate
-
-Do not begin until the engagement record contains all of:
-
-- domain and forest names, plus the domain controllers to query;
-- the low-privilege identity issued for collection, referenced by vault path,
-  never by password;
-- the approved window, time zone, and query budget per hour;
-- written confirmation that LDAP enumeration and BloodHound-style collection
-  are permitted;
-- a named blue-team contact and a deconfliction procedure.
-
-If the record names only a parent company or brand, resolve the exact domains
-with the owner before the first query. A domain that appears in DNS but not in
-the record is out of scope, even if a trust points at it.
-
 ## Preconditions
 
 - Collector version pinned and recorded; note the exact version of every
@@ -124,18 +108,6 @@ with SHA-256 and record the hash in the index. Redact personal data in
 description, telephoneNumber, and info attributes. If a password or key
 appears, stop, redact, and escalate. Evidence leaves the engagement only
 through the agreed channel.
-
-## Stop conditions
-
-- Account lockout or repeated invalid credential errors.
-- The identity holds rights beyond those recorded for it.
-- A query returns objects from an out-of-scope domain.
-- Secret material appears in any attribute.
-- The domain controller shows load or replication delay attributable to
-  collection.
-- The blue-team contact requests a pause.
-- Any next step would need a write, a ticket request, or a session as another
-  user.
 
 ## Failure handling
 

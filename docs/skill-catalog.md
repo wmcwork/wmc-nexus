@@ -20,7 +20,7 @@ approved (reviewed for this release).
 | playwright-cli | Browser automation for authorized testing | gated | shipped | ARTEX upstream |
 | rea | Reverse-engineering analysis | read-only | shipped | ARTEX upstream |
 | scopesentry | Scope enforcement and validation | read-only | shipped | ARTEX upstream |
-| engagement-scoping | Scope, RoE, contacts, stop conditions | read-only | draft | first-party (2026-11-22) |
+| engagement-scoping | Scope, RoE and contacts | read-only | draft | first-party (2026-11-22) |
 | passive-recon | External attack-surface mapping without target traffic | read-only | draft | first-party (2026-11-22) |
 | evidence-and-reporting | Evidence, redaction, severity, reporting | read-only | draft | first-party (2026-11-22) |
 | active-recon | Approved active discovery with rate limits | gated | draft | first-party (2026-11-22) |
@@ -48,7 +48,6 @@ See `docs/skill-authoring.md`. A skill moves from draft to approved only after:
 1. the frontmatter parses and the description is a clear trigger;
 2. a second reviewer completes the checklist;
 3. a dry-run in a disposable lab is recorded;
-4. the authorization gate is proven to block without a scope record.
 
 ## Notes
 

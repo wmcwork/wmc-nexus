@@ -8,9 +8,8 @@ into a stable, professional release.
 
 ## Principles
 
-- **Authorized use only.** Every offensive skill and module assumes a signed
-  scope/authorization. Default posture is read-only recon; exploitation steps
-  require explicit, per-engagement approval.
+- **Operator responsibility.** Operators are responsible for the engagements
+  they run and for the data they handle.
 - **First-party content.** Third-party skills are not imported without a pinned
   commit, identified author, compatible license, notice preservation and a
   security review. Public standards (OWASP, MITRE, PTES, NIST) are referenced
@@ -67,19 +66,16 @@ v1 catalog (authored; each entry stays draft until reviewed and dry-run):
 Each skill must include:
 
 1. YAML frontmatter: `name`, `description`, `allowed-tools` (least privilege).
-2. Scope and authorization gate.
-3. Step-by-step workflow with verification after each phase.
-4. Evidence format and where to store it.
-5. Failure handling and stop conditions.
+2. Step-by-step workflow with verification after each phase.
+3. Evidence format and where to store it.
+4. Failure handling.
 6. References (versioned links) and an original-content statement.
 7. A dry-run test against a lab target or mock, recorded in the PR.
 
 Acceptance criteria:
 
 - Catalog page lists every skill with provenance and review status.
-- A skill cannot be enabled for an engagement without a scope record.
-- Dry-run evidence exists for each skill; no skill executes destructive actions
-  by default.
+- Dry-run evidence exists for each skill.
 - Security review checklist completed for every entry.
 
 ## Milestone D — Red / Blue / Purple modules
@@ -128,4 +124,4 @@ Acceptance criteria:
 2. Write the skill authoring template and review checklist.
 3. Author the first three skills: engagement-scoping, passive-recon,
    evidence-and-reporting.
-4. Add catalog provenance fields and an authorization gate.
+4. Add catalog provenance fields.

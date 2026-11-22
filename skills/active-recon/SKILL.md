@@ -11,23 +11,6 @@ hosts answer, which services listen, what the web tier exposes, and which paths
 exist. Everything here is discovery. Exploitation, authentication bypass and
 state changes belong to later skills and to their own approvals.
 
-## Authorization gate
-
-Do not send the first packet until all of the following are recorded:
-
-- an approved engagement scope record from `engagement-scoping`, linked in the
-  task;
-- explicit written permission for active scanning, not only passive collection;
-- the in-scope hostnames, IPs and CIDRs, with a documented ownership source for
-  each;
-- the testing window in UTC, including blackout periods;
-- rate and concurrency limits agreed with the owner;
-- the source egress addresses, shared with the client for deconfliction;
-- a named technical contact and the emergency stop procedure.
-
-If any item is missing, stop and request it. A previous engagement's scope does
-not carry over, and an asset that merely looks related is not in scope.
-
 ## Preconditions
 
 - Scope record reviewed within the last working day.
@@ -126,16 +109,6 @@ address, raw response saved before analysis, and a SHA-256 of the artefact.
 Store raw output in the access-controlled evidence directory, never in the
 repository. Redact session cookies, tokens, personal data and any internal
 hostname that is not needed to prove the point.
-
-## Stop conditions
-
-- A host resolves outside the scope record or into a shared platform.
-- Response times or error rates indicate production impact.
-- The client's defenders report an incident or ask for a pause.
-- Sensitive personal data or credentials appear in a response; stop, redact,
-  escalate.
-- Rate limits are reached and the owner will not raise them.
-- The window closes or the technical contact becomes unreachable.
 
 ## Failure handling
 

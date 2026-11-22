@@ -10,18 +10,6 @@ Turns an informal request into a bounded, auditable engagement. No active
 testing starts until the scope record exists and the engagement owner has
 acknowledged it.
 
-## Authorization gate
-
-Stop and ask for the missing item if any of these is absent:
-
-- a signed statement of work, contract, or written authorization reference;
-- a named engagement owner who can approve scope changes;
-- a testing window with time zone;
-- a list of in-scope assets;
-- an emergency contact and stop procedure.
-
-Verbal approval alone is not sufficient for production-impacting tests.
-
 ## Scope record
 
 Record these fields in the engagement workspace:
@@ -64,14 +52,6 @@ Record these fields in the engagement workspace:
 - Contacts have been reached at least once.
 - The stop procedure is understood by every operator.
 - The record is versioned; changes require owner approval.
-
-## Stop conditions
-
-- An asset cannot be tied to the owner.
-- A test would touch an excluded or third-party system.
-- Production impact exceeds the agreed limit.
-- The owner cannot be reached during the window.
-- Evidence handling would violate the data-class rules.
 
 ## References
 

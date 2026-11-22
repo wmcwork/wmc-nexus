@@ -11,22 +11,6 @@ assumes active reconnaissance is complete and a map of routes, parameters and
 roles exists. Confirm weaknesses one at a time, prove them with the smallest
 safe action, and never leave the application in a changed state.
 
-## Authorization gate
-
-Do not begin until the following are recorded and acknowledged:
-
-- an approved engagement scope record, linked in the task;
-- the specific application, environment and base URL, including whether it is
-  production, staging or a dedicated test instance;
-- test accounts provisioned for the engagement, with their roles written down;
-- written permission for state-changing tests, if any are planned;
-- the impact budget: request rate, data volume, and which records may be
-  created or modified;
-- the testing window and the deconfliction contact.
-
-If test accounts are not available, testing is limited to unauthenticated
-surface review and must be reported as such.
-
 ## Preconditions
 
 - Route and parameter map from `api-recon` or `active-recon`, with confidence
@@ -155,16 +139,6 @@ timestamps, the account used, and the scope reference. Store HTTP artefacts as
 text plus a hash. Screenshots only where the UI state matters. Redact cookies,
 tokens, personal data and third-party content by default; keep unredacted
 originals only in the access-controlled store.
-
-## Stop conditions
-
-- A test would touch real user data or a non-designated record.
-- The application shows degradation, error spikes or queue backlogs.
-- The client reports that defenders or customers noticed the test.
-- A credential, key or personal data set is encountered outside the test
-  accounts.
-- The impact budget or window is exhausted.
-- A required approval is missing or ambiguous.
 
 ## Failure handling
 

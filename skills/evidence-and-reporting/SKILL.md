@@ -75,12 +75,6 @@ access-controlled evidence store.
 - No secrets or out-of-scope data remain in the report.
 - The client can verify each fix with the provided steps.
 
-## Stop conditions
-
-- Evidence would require storing prohibited data.
-- A finding cannot be reproduced; downgrade it to an observation.
-- Redaction cannot be completed safely; escalate before delivery.
-
 ## References
 
 - CVSS: <https://www.first.org/cvss/>

@@ -15,15 +15,17 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
 import type { Finding, FindingsPage } from "@/lib/types";
 
 const PAGE_SIZE = 20;
 
-function findingLabel(finding: Finding) {
-  return finding.name?.trim() || finding.vulnclass.trim() || "Uncategorized";
+function findingLabel(finding: Finding, t: (key: TranslationKey) => string) {
+  return finding.name?.trim() || finding.vulnclass.trim() || t("findingUncategorized");
 }
 
 export function RetestsTab({ taskId }: { taskId: string }) {
+  const { t } = useLocale();
   const [page, setPage] = React.useState(1);
   const [data, setData] = React.useState<FindingsPage | null>(null);
   const [selectedId, setSelectedId] = React.useState("");
@@ -73,9 +75,9 @@ export function RetestsTab({ taskId }: { taskId: string }) {
       {error ? (
         <Alert variant="destructive">
           <AlertDescription>
-            Failed to load task vulnerabilities: {error}
+            {t("taskUiLoadVulnsFailed")}: {error}
             <Button variant="outline" size="sm" onClick={refresh}>
-              Retry
+              {t("retry")}
             </Button>
           </AlertDescription>
         </Alert>
@@ -83,8 +85,11 @@ export function RetestsTab({ taskId }: { taskId: string }) {
       <div className="grid items-start gap-4 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)]">
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>Select a vulnerability{data ? ` · ${data.total}` : ""}</CardTitle>
-            <CardDescription>View retest history for this task's vulnerabilities, or start a new retest.</CardDescription>
+            <CardTitle>
+              {t("taskUiSelectVulnerability")}
+              {data ? ` · ${data.total}` : ""}
+            </CardTitle>
+            <CardDescription>{t("taskUiRetestDescription")}</CardDescription>
           </CardHeader>
           <CardContent className="flex max-h-[32rem] flex-col overflow-y-auto">
             {!loaded && !error ? <Skeleton className="h-24 w-full" /> : null}
@@ -94,11 +99,11 @@ export function RetestsTab({ taskId }: { taskId: string }) {
                 <Button
                   variant={finding.id === selectedId ? "secondary" : "ghost"}
                   className="h-auto w-full shrink-0 flex-col items-start gap-2 whitespace-normal py-3 text-left"
-                  aria-label={`Select vulnerability: ${findingLabel(finding)}`}
+                  aria-label={`${t("taskUiSelectVulnAria")}: ${findingLabel(finding, t)}`}
                   aria-pressed={finding.id === selectedId}
                   onClick={() => setSelectedId(finding.id)}
                 >
-                  <span className="line-clamp-2 break-words">{findingLabel(finding)}</span>
+                  <span className="line-clamp-2 break-words">{findingLabel(finding, t)}</span>
                   <span className="flex flex-wrap items-center gap-2">
                     <StatusBadge domain="severity" value={finding.severity} dot />
                     <StatusBadge domain="finding" value={finding.status} dot />
@@ -109,8 +114,8 @@ export function RetestsTab({ taskId }: { taskId: string }) {
             {loaded && findings.length === 0 ? (
               <Empty>
                 <EmptyHeader>
-                  <EmptyTitle>No vulnerabilities to retest</EmptyTitle>
-                  <EmptyDescription>Once this task discovers vulnerabilities, you can manually start a retest here.</EmptyDescription>
+                  <EmptyTitle>{t("taskUiNoVulnsRetest")}</EmptyTitle>
+                  <EmptyDescription>{t("taskUiRetestEmptyHelp")}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             ) : null}
@@ -120,19 +125,19 @@ export function RetestsTab({ taskId }: { taskId: string }) {
               <Button
                 variant="outline"
                 size="icon-sm"
-                aria-label="Previous page of vulnerabilities"
+                aria-label={t("taskUiPrevVulnPage")}
                 disabled={page === 1}
                 onClick={() => setPage(page - 1)}
               >
                 <ChevronLeftIcon />
               </Button>
               <span className="text-muted-foreground text-xs">
-                Page {page} / {Math.ceil(data.total / PAGE_SIZE)}
+                {t("taskUiPage")} {page} / {Math.ceil(data.total / PAGE_SIZE)}
               </span>
               <Button
                 variant="outline"
                 size="icon-sm"
-                aria-label="Next page of vulnerabilities"
+                aria-label={t("taskUiNextVulnPage")}
                 disabled={page * PAGE_SIZE >= data.total}
                 onClick={() => setPage(page + 1)}
               >
@@ -145,10 +150,10 @@ export function RetestsTab({ taskId }: { taskId: string }) {
           <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-col gap-2">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <h2 className="min-w-0 flex-1 break-words font-medium">{findingLabel(selected)}</h2>
+                <h2 className="min-w-0 flex-1 break-words font-medium">{findingLabel(selected, t)}</h2>
                 <Button asChild variant="ghost" size="sm">
                   <Link href={`/function/findings/detail?id=${selected.finding_id || selected.id}`}>
-                    Vulnerability details <ArrowUpRightIcon data-icon="inline-end" />
+                    {t("taskUiVulnDetails")} <ArrowUpRightIcon data-icon="inline-end" />
                   </Link>
                 </Button>
               </div>
@@ -157,7 +162,7 @@ export function RetestsTab({ taskId }: { taskId: string }) {
             <FindingRetestPanel
               key={selected.id}
               findingId={selected.finding_id || selected.id}
-              findingName={findingLabel(selected)}
+              findingName={findingLabel(selected, t)}
               onCompleted={refresh}
             />
           </div>

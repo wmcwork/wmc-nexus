@@ -11,13 +11,15 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
-import type { TaskCredential } from "@/lib/types";
+import { useLocale } from "@/lib/locale";
 import { setVisibleInterval } from "@/lib/polling";
+import type { TaskCredential } from "@/lib/types";
 
 // Credentials tab (#3): the task's test accounts — user-declared (program alias
 // accounts) and agent-recorded (accounts the workers registered themselves).
 // Passwords are masked server-side and never sent to the browser.
 export function CredentialsTab({ taskId }: { taskId: string }) {
+  const { t } = useLocale();
   const [items, setItems] = React.useState<TaskCredential[] | null>(null);
   const [error, setError] = React.useState("");
   const [domain, setDomain] = React.useState("");
@@ -77,10 +79,8 @@ export function CredentialsTab({ taskId }: { taskId: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Test accounts</CardTitle>
-        <CardDescription>
-          Test accounts for this task. Entries with an empty password mean the agent registers that account and records it. Agent-recorded accounts appear here automatically.
-        </CardDescription>
+        <CardTitle>{t("taskUiTestAccounts")}</CardTitle>
+        <CardDescription>{t("taskUiCredentialsDescription")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
@@ -89,10 +89,8 @@ export function CredentialsTab({ taskId }: { taskId: string }) {
         ) : items.length === 0 ? (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>No test accounts</EmptyTitle>
-              <EmptyDescription>
-                Add one below, or declare them when creating the task — the agent reuses them for authenticated testing.
-              </EmptyDescription>
+              <EmptyTitle>{t("taskUiNoTestAccounts")}</EmptyTitle>
+              <EmptyDescription>{t("taskUiCredentialsEmptyHelp")}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
@@ -102,13 +100,19 @@ export function CredentialsTab({ taskId }: { taskId: string }) {
                 <code className="text-sm font-medium">{c.domain}</code>
                 <span className="text-muted-foreground text-sm">{c.username}</span>
                 <Badge variant={c.source === "agent" ? "secondary" : "outline"}>
-                  {c.source === "agent" ? "agent-recorded" : "declared"}
+                  {c.source === "agent" ? t("taskUiAgentRecorded") : t("taskUiDeclared")}
                 </Badge>
                 <div className="ml-auto flex items-center gap-1">
                   <code className="max-w-40 truncate rounded bg-muted px-2 py-0.5 text-sm">
-                    {c.password === "" ? "— agent generates —" : "stored, hidden"}
+                    {c.password === "" ? t("taskUiAgentGenerates") : t("taskUiStoredHidden")}
                   </code>
-                  <Button size="icon" variant="ghost" className="size-7" aria-label="Delete credential" onClick={() => remove(c.id)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="size-7"
+                    aria-label={t("taskUiDeleteCredential")}
+                    onClick={() => remove(c.id)}
+                  >
                     <TrashIcon />
                   </Button>
                 </div>
@@ -118,18 +122,23 @@ export function CredentialsTab({ taskId }: { taskId: string }) {
           </div>
         )}
         <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-          <Input placeholder="domain (e.g. target.example.com)" value={domain} onChange={(e) => setDomain(e.target.value)} />
-          <Input placeholder="email or username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <Input placeholder={t("accountDomain")} value={domain} onChange={(e) => setDomain(e.target.value)} />
+          <Input placeholder={t("emailOrUsername")} value={username} onChange={(e) => setUsername(e.target.value)} />
           <Input
-            placeholder="password (empty = agent generates)"
+            placeholder={t("accountPassword")}
             type="text"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Button variant="outline" disabled={adding || !domain.trim() || !username.trim()} onClick={add}>
-            <PlusIcon /> Add
+            <PlusIcon /> {t("notifyAddAction")}
           </Button>
-          <Input className="sm:col-span-4" placeholder="note (optional, e.g. program alias account)" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Input
+            className="sm:col-span-4"
+            placeholder={t("accountNote")}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
         </div>
       </CardContent>
     </Card>

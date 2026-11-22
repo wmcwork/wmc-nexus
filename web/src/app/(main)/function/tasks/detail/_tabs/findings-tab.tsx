@@ -12,21 +12,22 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
+import { setVisibleInterval } from "@/lib/polling";
 import { useStoredSortPreference } from "@/lib/sort-preference";
 import { statusMeta } from "@/lib/status";
 import type { Finding, FindingStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { setVisibleInterval } from "@/lib/polling";
 
 type FindingSortField = "time";
 
 const FINDING_SORT_FIELDS: readonly FindingSortField[] = ["time"];
 const FINDING_SORT_PREFERENCE_KEY = "artex_task_findings_sort";
 
-function findingLabel(finding: Finding): string {
+function findingLabel(finding: Finding, t: (key: TranslationKey) => string): string {
   if (finding.name?.trim()) return finding.name;
   if (finding.vulnclass?.trim()) return finding.vulnclass;
-  return "Uncategorized";
+  return t("findingUncategorized");
 }
 
 const FINDING_STATUSES: FindingStatus[] = [
@@ -50,6 +51,7 @@ function Row({
   contextTaskId: string;
   onStatus: (f: Finding, next: FindingStatus) => void;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = React.useState(false);
   return (
     <div className="border-b last:border-b-0">
@@ -65,17 +67,19 @@ function Row({
           <StatusBadge domain="severity" value={f.severity} dot />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate font-medium">{findingLabel(f)}</span>
+              <span className="truncate font-medium">{findingLabel(f, t)}</span>
               {f.inherited && f.source_task_id && (
                 <Badge variant="outline" className="shrink-0">
-                  Source #{f.source_task_id} · read-only
+                  {t("taskUiSource")} #{f.source_task_id} · {t("findingReadOnly")}
                 </Badge>
               )}
             </div>
             <span className="truncate text-xs text-muted-foreground">{f.summary}</span>
           </div>
         </button>
-        <Badge variant="outline">Traffic evidence {f.traffic_count ?? 0}</Badge>
+        <Badge variant="outline">
+          {t("findingTrafficEvidence")} {f.traffic_count ?? 0}
+        </Badge>
         {f.assets && f.assets.length > 0 && (
           <div className="hidden shrink-0 flex-wrap justify-end gap-1 sm:flex">
             {f.assets.slice(0, 2).map((a) => (
@@ -119,16 +123,16 @@ function Row({
                 : `/function/findings/detail?id=${f.finding_id}`
             }
             className="text-muted-foreground hover:text-primary inline-flex shrink-0 items-center gap-0.5 text-xs"
-            title="View vulnerability details"
+            title={t("findingViewDetails")}
           >
-            Details
+            {t("taskUiDetails")}
             <ArrowUpRightIcon className="size-3" />
           </Link>
         )}
       </div>
       {open && (
         <div className="bg-muted/30 px-4 pb-4 pl-11">
-          <div className="mb-1 text-xs font-medium text-muted-foreground">Evidence / PoC</div>
+          <div className="mb-1 text-xs font-medium text-muted-foreground">{t("findingEvidencePoc")}</div>
           <pre className="overflow-auto rounded-md border bg-background p-3 font-mono text-xs whitespace-pre-wrap">
             {f.evidence}
           </pre>
@@ -139,6 +143,7 @@ function Row({
 }
 
 export function FindingsTab({ taskId }: { taskId: string }) {
+  const { t } = useLocale();
   const [findings, setFindings] = React.useState<Finding[]>([]);
   const [sortPreference, setSortPreference] = useStoredSortPreference(
     FINDING_SORT_PREFERENCE_KEY,
@@ -167,18 +172,21 @@ export function FindingsTab({ taskId }: { taskId: string }) {
     };
   }, [taskId]);
 
-  const onStatus = React.useCallback(async (f: Finding, next: FindingStatus) => {
-    if (f.inherited || !f.finding_id || next === f.status) return;
-    const prev = f.status;
-    setFindings((cur) => cur.map((x) => (x.id === f.id ? { ...x, status: next } : x)));
-    try {
-      await api.setFindingStatus(f.finding_id, next);
-      toast.success(`Marked as "${statusMeta("finding", next).label}"`);
-    } catch (e) {
-      setFindings((cur) => cur.map((x) => (x.id === f.id ? { ...x, status: prev } : x)));
-      toast.error("Update failed: " + (e as Error).message);
-    }
-  }, []);
+  const onStatus = React.useCallback(
+    async (f: Finding, next: FindingStatus) => {
+      if (f.inherited || !f.finding_id || next === f.status) return;
+      const prev = f.status;
+      setFindings((cur) => cur.map((x) => (x.id === f.id ? { ...x, status: next } : x)));
+      try {
+        await api.setFindingStatus(f.finding_id, next);
+        toast.success(`${t("taskUiMarkedAs")} "${statusMeta("finding", next).label}"`);
+      } catch (e) {
+        setFindings((cur) => cur.map((x) => (x.id === f.id ? { ...x, status: prev } : x)));
+        toast.error(`${t("findingUpdateFailed")}: ` + (e as Error).message);
+      }
+    },
+    [t],
+  );
 
   const items = findings
     .filter((f) => f.task_id === taskId || f.inherited)
@@ -192,11 +200,13 @@ export function FindingsTab({ taskId }: { taskId: string }) {
     <Card className="overflow-hidden py-0">
       <CardContent className="px-0">
         <div className="flex items-center border-b px-4 py-2 text-xs text-muted-foreground">
-          <span className="min-w-0 flex-1">Vulnerabilities</span>
+          <span className="min-w-0 flex-1">{t("taskUiVulnerabilities")}</span>
           <button
             type="button"
             className="inline-flex items-center gap-1 outline-none focus-visible:underline"
-            aria-label={`Discovery time currently ${sortPreference.direction === "asc" ? "ascending" : "descending"}, click to toggle sort direction`}
+            aria-label={`${t("taskUiDiscoveryTime")} ${t("taskSortCurrently")} ${
+              sortPreference.direction === "asc" ? t("taskAscending") : t("taskDescending")
+            }, ${t("taskSortToggle")}`}
             onClick={() =>
               setSortPreference((current) => ({
                 field: "time",
@@ -204,7 +214,7 @@ export function FindingsTab({ taskId }: { taskId: string }) {
               }))
             }
           >
-            <span>Discovery time</span>
+            <span>{t("taskUiDiscoveryTime")}</span>
             {sortPreference.direction === "asc" ? (
               <ArrowUpIcon className="size-3.5" />
             ) : (
@@ -216,7 +226,7 @@ export function FindingsTab({ taskId }: { taskId: string }) {
           <Row key={f.id} f={f} contextTaskId={taskId} onStatus={onStatus} />
         ))}
         {items.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">No confirmed findings yet for this task or its directly linked tasks.</p>
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">{t("taskUiNoFindings")}</p>
         )}
       </CardContent>
     </Card>

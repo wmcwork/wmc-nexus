@@ -40,10 +40,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { api } from "@/lib/api";
 import { parseCompanyScopeText } from "@/lib/company-scope";
+import { useLocale } from "@/lib/locale";
+import { setVisibleInterval } from "@/lib/polling";
 import { taskAssetSourceLabel } from "@/lib/task-assets";
 import type { Asset, NewAssetType } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { setVisibleInterval } from "@/lib/polling";
 
 const PAGE_SIZES = [25, 50, 100, 200];
 
@@ -56,15 +57,6 @@ const METHOD_COLOR: Record<string, string> = {
   POST: "bg-blue-100 text-blue-700",
   PUT: "bg-amber-100 text-amber-700",
 };
-
-const TABS: { key: NewAssetType; label: string; icon: LucideIcon }[] = [
-  { key: "root_domain", label: "Root domain", icon: GlobeIcon },
-  { key: "ip", label: "IP", icon: NetworkIcon },
-  { key: "subdomain", label: "Subdomain", icon: GlobeIcon },
-  { key: "app", label: "App", icon: SmartphoneIcon },
-  { key: "service", label: "Service", icon: LayoutTemplateIcon },
-  { key: "endpoint", label: "Endpoint", icon: LinkIcon },
-];
 
 function firstText(values: Array<string | undefined>, fallback: string): string {
   return values.find((value) => value?.trim()) ?? fallback;
@@ -133,8 +125,9 @@ function Chips({ items, mono }: { items: string[]; mono?: boolean }) {
 }
 
 function SourceCell({ asset }: { asset: Asset }) {
+  const { t } = useLocale();
   const source = firstText([asset.task_source], "legacy");
-  const summary = firstText([asset.task_source_summary], "Migrated from a historical task's asset association; no more detailed source information");
+  const summary = firstText([asset.task_source_summary], t("taskTabAssetsLegacySourceSummary"));
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -147,7 +140,9 @@ function SourceCell({ asset }: { asset: Asset }) {
           <span className="font-medium">{taskAssetSourceLabel(source)}</span>
           <span className="[overflow-wrap:anywhere]">{summary}</span>
           {asset.task_source_node_id ? (
-            <span className="font-mono opacity-80">Source node #{asset.task_source_node_id}</span>
+            <span className="font-mono opacity-80">
+              {t("taskTabAssetsSourceNode")} #{asset.task_source_node_id}
+            </span>
           ) : null}
         </div>
       </TooltipContent>
@@ -174,6 +169,7 @@ function AssetCard({
   size: number;
   total: number;
 }) {
+  const { t } = useLocale();
   const rows = React.Children.toArray(children);
   const pageCount = Math.max(1, Math.ceil(total / size));
   const start = total === 0 ? 0 : page * size + 1;
@@ -193,7 +189,7 @@ function AssetCard({
     tableRows = (
       <TableRow>
         <TableCell colSpan={cols.length} className="py-10 text-center text-muted-foreground text-sm">
-          No test assets in this category yet
+          {t("taskTabAssetsEmptyCategory")}
         </TableCell>
       </TableRow>
     );
@@ -228,7 +224,7 @@ function AssetCard({
               <SelectGroup>
                 {PAGE_SIZES.map((value) => (
                   <SelectItem key={value} value={String(value)}>
-                    {value} / page
+                    {value} {t("taskTabAssetsPerPage")}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -244,7 +240,7 @@ function AssetCard({
                 size="icon-sm"
                 disabled={page <= 0}
                 onClick={() => onPage(Math.max(0, page - 1))}
-                aria-label="Previous page"
+                aria-label={t("previousPage")}
               >
                 <ChevronLeftIcon />
               </Button>
@@ -256,7 +252,7 @@ function AssetCard({
                 size="icon-sm"
                 disabled={page + 1 >= pageCount}
                 onClick={() => onPage(Math.min(pageCount - 1, page + 1))}
-                aria-label="Next page"
+                aria-label={t("nextPage")}
               >
                 <ChevronRightIcon />
               </Button>
@@ -279,6 +275,7 @@ function AddTaskAssetsSheet({
   open: boolean;
   taskId: string;
 }) {
+  const { t } = useLocale();
   const [scopeText, setScopeText] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const parsedScope = React.useMemo(() => parseCompanyScopeText(scopeText), [scopeText]);
@@ -294,11 +291,13 @@ function AddTaskAssetsSheet({
     try {
       const result = await api.registerTaskAssetScopes(taskId, parsedScope.rules);
       const assetSummary = result.assets_linked + result.assets_existing;
-      toast.success(`Registered ${result.requested} scopes, linked ${assetSummary} domain/IP assets`);
+      toast.success(
+        `${t("taskTabAssetsRegisteredScopes")}: ${result.requested} · ${t("taskTabAssetsLinkedAssets")}: ${assetSummary}`,
+      );
       onAttached();
       onOpenChange(false);
     } catch (reason) {
-      toast.error(`Failed to add: ${String((reason as Error)?.message ?? reason)}`);
+      toast.error(`${t("taskTabAssetsAddFailed")}: ${String((reason as Error)?.message ?? reason)}`);
     } finally {
       setSaving(false);
     }
@@ -308,10 +307,8 @@ function AddTaskAssetsSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>Add test assets</SheetTitle>
-          <SheetDescription>
-            Enter the test scope directly. Domains and IPs create or reuse global assets; CIDRs, ICP records, and keywords act as agent scope context.
-          </SheetDescription>
+          <SheetTitle>{t("taskTabAssetsAddTitle")}</SheetTitle>
+          <SheetDescription>{t("taskTabAssetsAddDescription")}</SheetDescription>
         </SheetHeader>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
           <ScopeTextEditor
@@ -319,20 +316,21 @@ function AddTaskAssetsSheet({
             value={scopeText}
             onValueChange={setScopeText}
             parsed={parsedScope}
-            label="Test assets and scope"
-            description="One entry per line; domains, IPs, CIDRs, ICP records, and keywords are recognized automatically."
+            label={t("taskTabAssetsScopeLabel")}
+            description={t("taskTabAssetsScopeDescription")}
           />
         </div>
         <SheetFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Cancel
+            {t("cancel")}
           </Button>
           <Button
             onClick={() => void attach()}
             disabled={saving || parsedScope.rules.length === 0 || parsedScope.errors.length > 0}
           >
             {saving ? <Spinner data-icon="inline-start" /> : <PlusIcon data-icon="inline-start" />}
-            Register {parsedScope.rules.length > 0 ? parsedScope.rules.length : ""} entries
+            {t("taskTabAssetsRegister")} {parsedScope.rules.length > 0 ? parsedScope.rules.length : ""}{" "}
+            {t("taskTabAssetsEntries")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -341,6 +339,18 @@ function AddTaskAssetsSheet({
 }
 
 export function AssetsTab({ taskId }: { taskId: string }) {
+  const { t } = useLocale();
+  const tabs: { key: NewAssetType; label: string; icon: LucideIcon }[] = React.useMemo(
+    () => [
+      { key: "root_domain", label: t("assetRootDomain"), icon: GlobeIcon },
+      { key: "ip", label: t("assetsIp"), icon: NetworkIcon },
+      { key: "subdomain", label: t("assetSubdomain"), icon: GlobeIcon },
+      { key: "app", label: t("assetApp"), icon: SmartphoneIcon },
+      { key: "service", label: t("assetService"), icon: LayoutTemplateIcon },
+      { key: "endpoint", label: t("assetEndpoint"), icon: LinkIcon },
+    ],
+    [t],
+  );
   const [rows, setRows] = React.useState<Asset[]>([]);
   const [total, setTotal] = React.useState(0);
   const [counts, setCounts] = React.useState<Record<string, number>>({});
@@ -405,7 +415,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
           setRows([]);
           setTotal(0);
         } else {
-          toast.error(`Failed to load task assets: ${message}`);
+          toast.error(`${t("taskTabAssetsLoadFailed")}: ${message}`);
         }
       } finally {
         if (active && assetsRequestRef.current === request) {
@@ -422,7 +432,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
       clearTimeout(debounce);
       stopPolling();
     };
-  }, [page, query, refreshKey, size, tab, taskId]);
+  }, [page, query, refreshKey, size, t, tab, taskId]);
 
   React.useEffect(() => {
     const maxPage = Math.max(0, Math.ceil(total / size) - 1);
@@ -439,11 +449,11 @@ export function AssetsTab({ taskId }: { taskId: string }) {
     setRemoving(true);
     try {
       await api.detachTaskAsset(taskId, removeTarget.id);
-      toast.success(`Removed ${assetLabel(removeTarget)} from the current task`);
+      toast.success(`${t("taskTabAssetsRemovedFromTask")}: ${assetLabel(removeTarget)}`);
       setRemoveTarget(null);
       refresh();
     } catch (reason) {
-      toast.error(`Failed to remove: ${String((reason as Error)?.message ?? reason)}`);
+      toast.error(`${t("taskTabAssetsRemoveFailed")}: ${String((reason as Error)?.message ?? reason)}`);
     } finally {
       setRemoving(false);
     }
@@ -454,15 +464,15 @@ export function AssetsTab({ taskId }: { taskId: string }) {
       variant="ghost"
       size="icon-sm"
       onClick={() => setRemoveTarget(asset)}
-      aria-label={`Remove asset ${assetLabel(asset)} from the task`}
-      title="Remove from task"
+      aria-label={`${t("taskTabAssetsRemoveAria")}: ${assetLabel(asset)}`}
+      title={t("taskTabAssetsRemoveFromTask")}
     >
       <Trash2Icon />
     </Button>
   );
 
   const commonCardProps = { loaded, onPage: setPage, onSize: setSize, page, size, total };
-  const totalAll = TABS.reduce((sum, item) => sum + (counts[item.key] ?? 0), 0);
+  const totalAll = tabs.reduce((sum, item) => sum + (counts[item.key] ?? 0), 0);
 
   const searchBox = (
     <AssetDslSearch
@@ -478,12 +488,14 @@ export function AssetsTab({ taskId }: { taskId: string }) {
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-medium text-sm">Test assets</h2>
-          <p className="text-muted-foreground text-xs">This task is linked to {totalAll} assets in total</p>
+          <h2 className="font-medium text-sm">{t("taskTabAssetsTitle")}</h2>
+          <p className="text-muted-foreground text-xs">
+            {t("taskTabAssetsLinkedTotalPrefix")} {totalAll} {t("taskTabAssetsLinkedTotalSuffix")}
+          </p>
         </div>
         <Button size="sm" onClick={() => setAddOpen(true)}>
           <PlusIcon data-icon="inline-start" />
-          Add test assets
+          {t("taskTabAssetsAddTitle")}
         </Button>
       </div>
 
@@ -494,7 +506,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
       >
         <div className="overflow-x-auto overflow-y-hidden">
           <TabsList className="w-max">
-            {TABS.map((item) => (
+            {tabs.map((item) => (
               <TabsTrigger key={item.key} value={item.key}>
                 <item.icon data-icon="inline-start" />
                 {item.label}
@@ -507,7 +519,10 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         {searchBox}
 
         <TabsContent value="root_domain" className="mt-0 flex min-h-0 flex-1 flex-col">
-          <AssetCard cols={["Domain", "ICP record", "Source", "Actions"]} {...commonCardProps}>
+          <AssetCard
+            cols={[t("assetsDomain"), t("assetsIcpFiling"), t("taskTabAssetsSource"), t("actions")]}
+            {...commonCardProps}
+          >
             {rows.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="font-medium font-mono text-xs">{asset.domain}</TableCell>
@@ -522,7 +537,17 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         </TabsContent>
 
         <TabsContent value="ip" className="mt-0 flex min-h-0 flex-1 flex-col">
-          <AssetCard cols={["IP", "C segment", "Bound domains", "Open ports", "Source", "Actions"]} {...commonCardProps}>
+          <AssetCard
+            cols={[
+              t("assetsIp"),
+              t("assetsCSegment"),
+              t("assetsBoundDomains"),
+              t("assetsOpenPorts"),
+              t("taskTabAssetsSource"),
+              t("actions"),
+            ]}
+            {...commonCardProps}
+          >
             {rows.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="font-medium font-mono text-xs">{asset.ip}</TableCell>
@@ -548,7 +573,17 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         </TabsContent>
 
         <TabsContent value="subdomain" className="mt-0 flex min-h-0 flex-1 flex-col">
-          <AssetCard cols={["Domain", "Root domain", "Record type", "Record value", "Source", "Actions"]} {...commonCardProps}>
+          <AssetCard
+            cols={[
+              t("assetsDomain"),
+              t("assetsRootDomainColumn"),
+              t("assetsRecordType"),
+              t("assetsRecordValue"),
+              t("taskTabAssetsSource"),
+              t("actions"),
+            ]}
+            {...commonCardProps}
+          >
             {rows.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="font-medium font-mono text-xs">{asset.domain}</TableCell>
@@ -567,7 +602,18 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         </TabsContent>
 
         <TabsContent value="app" className="mt-0 flex min-h-0 flex-1 flex-col">
-          <AssetCard cols={["App", "Address", "Category", "Title", "Fingerprints", "Source", "Actions"]} {...commonCardProps}>
+          <AssetCard
+            cols={[
+              t("assetApp"),
+              t("taskTabAssetsAddress"),
+              t("category"),
+              t("assetsTitle"),
+              t("taskTabAssetsFingerprints"),
+              t("taskTabAssetsSource"),
+              t("actions"),
+            ]}
+            {...commonCardProps}
+          >
             {rows.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="max-w-48 truncate font-medium text-xs">{asset.app_name || "—"}</TableCell>
@@ -590,7 +636,16 @@ export function AssetsTab({ taskId }: { taskId: string }) {
 
         <TabsContent value="service" className="mt-0 flex min-h-0 flex-1 flex-col">
           <AssetCard
-            cols={["Address / service", "Status code", "Title", "Response size", "Fingerprints", "Auth", "Source", "Actions"]}
+            cols={[
+              t("taskTabAssetsAddressService"),
+              t("taskTabAssetsStatusCode"),
+              t("assetsTitle"),
+              t("taskTabAssetsResponseSize"),
+              t("taskTabAssetsFingerprints"),
+              t("assetsAuth"),
+              t("taskTabAssetsSource"),
+              t("actions"),
+            ]}
             {...commonCardProps}
           >
             {rows.map((asset) => {
@@ -648,7 +703,10 @@ export function AssetsTab({ taskId }: { taskId: string }) {
         </TabsContent>
 
         <TabsContent value="endpoint" className="mt-0 flex min-h-0 flex-1 flex-col">
-          <AssetCard cols={["Method", "Full URL", "Params", "Source", "Actions"]} {...commonCardProps}>
+          <AssetCard
+            cols={[t("assetsMethod"), t("assetsFullUrl"), t("assetsParams"), t("taskTabAssetsSource"), t("actions")]}
+            {...commonCardProps}
+          >
             {rows.map((asset) => (
               <TableRow key={asset.id}>
                 <TableCell className="w-16">
@@ -681,14 +739,14 @@ export function AssetsTab({ taskId }: { taskId: string }) {
       <AlertDialog open={Boolean(removeTarget)} onOpenChange={(open) => !open && !removing && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove from this task?</AlertDialogTitle>
+            <AlertDialogTitle>{t("taskTabAssetsRemoveDialogTitle")}</AlertDialogTitle>
             <AlertDialogDescription className="[overflow-wrap:anywhere]">
-              {removeTarget ? `Remove "${assetLabel(removeTarget)}" from this task's test assets.` : ""}
-              Global assets, linked traffic, and historical blackboard anchors are kept.
+              {removeTarget ? `${t("taskTabAssetsRemoveDialogBody")} "${assetLabel(removeTarget)}"` : ""}
+              {t("taskTabAssetsRemoveDialogFooter")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={removing}>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={removing}
@@ -698,7 +756,7 @@ export function AssetsTab({ taskId }: { taskId: string }) {
               }}
             >
               {removing ? <Spinner data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
-              {removing ? "Removing" : "Remove"}
+              {removing ? t("taskTabAssetsRemoving") : t("taskTabAssetsRemove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

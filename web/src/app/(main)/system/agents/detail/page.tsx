@@ -9,11 +9,13 @@ import { ArrowLeftIcon } from "lucide-react";
 
 import { AgentEditor } from "@/components/agent-editor";
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/lib/locale";
 
 // Deep-link editor page for one agent. The primary flow is the drawer on
 // /system/agents; this page reuses the same AgentEditor component full-width so a
 // direct URL (or an external link) still opens the editor.
 function AgentDetailInner() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const key = searchParams.get("key") ?? "";
 
@@ -21,12 +23,12 @@ function AgentDetailInner() {
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center gap-2">
         <Button asChild variant="ghost" size="icon-sm">
-          <Link href="/system/agents">
+          <Link href="/system/agents" aria-label={t("agentUiBackToAgents")}>
             <ArrowLeftIcon className="size-4" />
           </Link>
         </Button>
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Agent</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t("navAgents")}</h1>
           <p className="text-muted-foreground font-mono text-xs">{key}</p>
         </div>
       </div>

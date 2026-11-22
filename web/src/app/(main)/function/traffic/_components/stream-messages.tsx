@@ -7,6 +7,7 @@ import { Loader2Icon, RefreshCwIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import type { TrafficStreamMessage } from "@/lib/types";
 
 const PAGE_SIZE = 50;
@@ -19,12 +20,6 @@ function fmtBytes(n: number) {
   const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
   const v = n / 1024 ** i;
   return `${i === 0 ? v : v.toFixed(1)} ${units[i]}`;
-}
-
-function fmtDirection(direction: string) {
-  if (direction === "c2s") return "client -> server";
-  if (direction === "s2c") return "server -> client";
-  return direction;
 }
 
 // Hex dump: 16 bytes per line, offset first.
@@ -43,8 +38,17 @@ const payloadClass =
   "max-h-64 overflow-auto rounded-md bg-muted/50 p-2 font-mono text-xs break-all whitespace-pre-wrap";
 
 function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
+  const { t } = useLocale();
   const [full, setFull] = React.useState<FullPayload | null>(null);
   const binary = message.type === "binary";
+
+  // Protocol direction codes are logic values; only the label is translated.
+  const directionLabel =
+    message.direction === "c2s"
+      ? t("trafficUiClientToServer")
+      : message.direction === "s2c"
+        ? t("trafficUiServerToClient")
+        : message.direction;
 
   const loadFull = () => {
     if (!message.blob) return;
@@ -53,7 +57,7 @@ function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
       .trafficBlob(message.blob)
       .then((bytes) => {
         const text = binary
-          ? `${hexDump(bytes.subarray(0, HEX_PREVIEW_BYTES))}\n(${bytes.length} bytes total)`
+          ? `${hexDump(bytes.subarray(0, HEX_PREVIEW_BYTES))}\n(${bytes.length} ${t("trafficUiBytes")})`
           : new TextDecoder().decode(bytes);
         setFull({ loading: false, text });
       })
@@ -64,7 +68,7 @@ function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
     return (
       <div className="mx-5 my-3 space-y-1 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
         <div className="font-medium text-amber-700 text-xs dark:text-amber-400">
-          #{message.seq} Recording limit reached: later messages were not stored
+          #{message.seq} {t("trafficUiRecordingLimit")}
         </div>
         <pre className={payloadClass}>{message.payload}</pre>
       </div>
@@ -75,10 +79,10 @@ function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
     <div className="space-y-1.5 border-b px-5 py-3 last:border-b-0">
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <span className="font-mono text-muted-foreground tabular-nums">#{message.seq}</span>
-        <Badge variant="outline">{fmtDirection(message.direction)}</Badge>
+        <Badge variant="outline">{directionLabel}</Badge>
         <Badge variant="secondary">{message.type}</Badge>
         {binary && message.encoding === "base64" && <Badge variant="outline">base64</Badge>}
-        {message.truncated && <Badge variant="destructive">truncated</Badge>}
+        {message.truncated && <Badge variant="destructive">{t("trafficUiTruncated")}</Badge>}
         {message.event && <span className="font-mono">event: {message.event}</span>}
         {message.event_id && <span className="font-mono">id: {message.event_id}</span>}
         {message.retry ? <span className="font-mono">retry: {message.retry}</span> : null}
@@ -93,7 +97,7 @@ function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
           {!full?.text && (
             <Button variant="outline" size="xs" disabled={full?.loading} onClick={loadFull}>
               {full?.loading && <Loader2Icon className="animate-spin" />}
-              Load full payload
+              {t("trafficUiLoadFullPayload")}
             </Button>
           )}
           {full?.error && <span className="text-destructive">{full.error}</span>}
@@ -106,6 +110,7 @@ function StreamMessageRow({ message }: { message: TrafficStreamMessage }) {
 // StreamMessagesPanel lists the messages of one WebSocket or SSE exchange, a
 // page at a time. It does not poll: Refresh reloads from the start.
 export function StreamMessagesPanel({ exchangeId, kind }: { exchangeId: string; kind: "websocket" | "sse" }) {
+  const { t } = useLocale();
   const [items, setItems] = React.useState<TrafficStreamMessage[]>([]);
   const [total, setTotal] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
@@ -153,11 +158,12 @@ export function StreamMessagesPanel({ exchangeId, kind }: { exchangeId: string; 
     <div className="flex flex-col">
       <div className="flex items-center gap-2 px-5 py-3 text-muted-foreground text-xs">
         <span>
-          {kind === "websocket" ? "WebSocket" : "Server-Sent Events"} · {items.length} of {total} messages
+          {kind === "websocket" ? "WebSocket" : t("trafficUiSseLabel")} · {items.length} / {total}{" "}
+          {t("trafficUiMessages")}
         </span>
         <Button variant="outline" size="xs" className="ml-auto" disabled={loading} onClick={() => load(0)}>
           <RefreshCwIcon className={loading ? "animate-spin" : undefined} />
-          Refresh
+          {t("notifyRefresh")}
         </Button>
       </div>
       {renderBody()}
@@ -169,15 +175,19 @@ export function StreamMessagesPanel({ exchangeId, kind }: { exchangeId: string; 
       return (
         <div className="flex items-center gap-2 p-5 text-muted-foreground text-xs">
           <Loader2Icon className="size-3.5 animate-spin" />
-          Loading messages…
+          {t("trafficUiLoadingMessages")}
         </div>
       );
     }
     if (error) {
-      return <div className="p-5 text-destructive text-xs">Failed to load messages: {error}</div>;
+      return (
+        <div className="p-5 text-destructive text-xs">
+          {t("trafficUiLoadFailed")}: {error}
+        </div>
+      );
     }
     if (items.length === 0) {
-      return <div className="p-5 text-muted-foreground text-xs">No messages recorded for this stream.</div>;
+      return <div className="p-5 text-muted-foreground text-xs">{t("trafficUiNoStreamMessages")}</div>;
     }
     return (
       <>
@@ -190,7 +200,7 @@ export function StreamMessagesPanel({ exchangeId, kind }: { exchangeId: string; 
           <div className="flex justify-center p-4">
             <Button variant="outline" size="sm" disabled={loadingMore} onClick={() => load(items.length)}>
               {loadingMore && <Loader2Icon className="animate-spin" />}
-              Load more
+              {t("trafficUiLoadMore")}
             </Button>
           </div>
         )}

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import type { CommandRecord, ToolStat } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +51,7 @@ const PAGE_SIZES = [25, 50, 100];
 const CMD_MAX_LEN = 80;
 
 export default function CommandsPage() {
+  const { t } = useLocale();
   const [page, setPage] = React.useState(0);
   const [size, setSize] = React.useState(50);
   const [query, setQuery] = React.useState("");
@@ -70,8 +72,8 @@ export default function CommandsPage() {
 
   // Debounce search input.
   React.useEffect(() => {
-    const t = setTimeout(() => setQueryQ(query.trim()), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setQueryQ(query.trim()), 300);
+    return () => clearTimeout(timer);
   }, [query]);
 
   // Reset page on filter change.
@@ -130,7 +132,7 @@ export default function CommandsPage() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <TerminalIcon className="h-5 w-5 text-muted-foreground" />
-          <h1 className="text-xl font-semibold tracking-tight">Tool executions</h1>
+          <h1 className="text-xl font-semibold tracking-tight">{t("navCommands")}</h1>
           <Badge variant="secondary">{total}</Badge>
         </div>
       </div>
@@ -140,14 +142,14 @@ export default function CommandsPage() {
         <div className="relative max-w-sm flex-1">
           <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search tools / arguments..."
+            placeholder={t("cmdUiSearchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="h-8 pl-8"
           />
         </div>
         <Input
-          placeholder="Task ID"
+          placeholder={t("cmdUiTaskIdPlaceholder")}
           className="h-8 w-28"
           value={taskFilter}
           onChange={(e) => setTaskFilter(e.target.value.replace(/\D/g, ""))}
@@ -159,7 +161,7 @@ export default function CommandsPage() {
           <SelectContent>
             {PAGE_SIZES.map((n) => (
               <SelectItem key={n} value={String(n)}>
-                {n} / page
+                {n} / {t("perPage")}
               </SelectItem>
             ))}
           </SelectContent>
@@ -167,7 +169,7 @@ export default function CommandsPage() {
 
         <Button variant="outline" size="sm" className="h-8" onClick={() => setStatsOpen(true)}>
           <BarChart3Icon className="size-4" />
-          Stats
+          {t("cmdUiStatsButton")}
         </Button>
 
         <div className="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
@@ -205,12 +207,12 @@ export default function CommandsPage() {
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-card">
                 <TableRow>
-                  <TableHead className="w-[130px]">Time</TableHead>
-                  <TableHead className="w-[60px]">Task</TableHead>
-                  <TableHead className="w-[90px]">Worker</TableHead>
-                  <TableHead className="w-[110px]">Tool</TableHead>
-                  <TableHead>Input</TableHead>
-                  <TableHead className="w-[60px]">Status</TableHead>
+                  <TableHead className="w-[130px]">{t("llmRecordsTime")}</TableHead>
+                  <TableHead className="w-[60px]">{t("llmRecordsTask")}</TableHead>
+                  <TableHead className="w-[90px]">{t("llmRecordsWorker")}</TableHead>
+                  <TableHead className="w-[110px]">{t("cmdUiColTool")}</TableHead>
+                  <TableHead>{t("dashboardInput")}</TableHead>
+                  <TableHead className="w-[60px]">{t("dashboardStatus")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -223,7 +225,7 @@ export default function CommandsPage() {
                 ) : commands.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
-                      No tool execution records yet
+                      {t("cmdUiEmpty")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -255,11 +257,11 @@ export default function CommandsPage() {
                       <TableCell>
                         {cmd.is_error ? (
                           <Badge variant="destructive" className="text-xs">
-                            Failed
+                            {t("notifyFailed")}
                           </Badge>
                         ) : (
                           <Badge variant="secondary" className="text-xs text-emerald-600">
-                            Success
+                            {t("cmdUiSuccess")}
                           </Badge>
                         )}
                       </TableCell>
@@ -276,17 +278,18 @@ export default function CommandsPage() {
       <Dialog open={statsOpen} onOpenChange={setStatsOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Tool call stats</DialogTitle>
+            <DialogTitle>{t("cmdUiStatsTitle")}</DialogTitle>
             <DialogDescription>
-              {taskFilter || queryQ ? "All records under the current filters" : "All tool execution records"}
+              {taskFilter || queryQ ? t("cmdUiStatsDescFiltered") : t("cmdUiStatsDescAll")}
               {stats.length > 0 && (
                 <>
                   {" · "}
-                  <span className="tabular-nums">{stats.length}</span> tools ·{" "}
-                  <span className="tabular-nums">{statsTotal}</span> calls
+                  <span className="tabular-nums">{stats.length}</span> {t("cmdUiToolsCount")} ·{" "}
+                  <span className="tabular-nums">{statsTotal}</span> {t("cmdUiCallsCount")}
                   {statsErrors > 0 && (
                     <>
-                      {" · Failed "}
+                      {" · "}
+                      {t("notifyFailed")}{" "}
                       <span className="tabular-nums text-red-600 dark:text-red-400">{statsErrors}</span>
                     </>
                   )}
@@ -300,7 +303,7 @@ export default function CommandsPage() {
               <Loader2Icon className="mx-auto h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : stats.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">No stats data</div>
+            <div className="py-10 text-center text-sm text-muted-foreground">{t("cmdUiNoStats")}</div>
           ) : (
             <div className="-mr-2 max-h-[55vh] space-y-1 overflow-auto pr-2">
               {stats.map((s) => (
@@ -309,7 +312,9 @@ export default function CommandsPage() {
                     <div className="flex items-center gap-2">
                       <span className="truncate font-mono text-xs font-medium">{s.tool}</span>
                       {s.errors > 0 && (
-                        <span className="text-[11px] tabular-nums text-red-600 dark:text-red-400">Failed {s.errors}</span>
+                        <span className="text-[11px] tabular-nums text-red-600 dark:text-red-400">
+                          {t("notifyFailed")} {s.errors}
+                        </span>
                       )}
                     </div>
                     <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -337,7 +342,7 @@ export default function CommandsPage() {
           {selected && (
             <>
               <SheetHeader className="border-b px-5 py-4">
-                <SheetTitle className="pr-8">Tool execution details</SheetTitle>
+                <SheetTitle className="pr-8">{t("cmdUiDetailsTitle")}</SheetTitle>
                 <SheetDescription>{fmtTime(selected.created_at)}</SheetDescription>
                 <div className="flex flex-wrap items-center gap-2 pt-2">
                   <Badge variant="outline" className="text-xs font-mono">
@@ -351,18 +356,20 @@ export default function CommandsPage() {
                   </Badge>
                   {selected.is_error ? (
                     <Badge variant="destructive" className="text-xs">
-                      Failed
+                      {t("notifyFailed")}
                     </Badge>
                   ) : (
                     <Badge variant="secondary" className="text-xs text-emerald-600">
-                      Success
+                      {t("cmdUiSuccess")}
                     </Badge>
                   )}
                 </div>
               </SheetHeader>
               <div className="grid min-h-0 flex-1 grid-rows-2 divide-y">
                 <div className="flex min-h-0 min-w-0 flex-col">
-                  <div className="border-b px-5 py-2 text-xs font-medium text-muted-foreground">Input</div>
+                  <div className="border-b px-5 py-2 text-xs font-medium text-muted-foreground">
+                    {t("dashboardInput")}
+                  </div>
                   <div className="min-h-0 flex-1 overflow-auto">
                     <pre className="p-5 font-mono text-xs break-all whitespace-pre-wrap">
                       {toolInput(selected.command)}
@@ -370,7 +377,9 @@ export default function CommandsPage() {
                   </div>
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-col">
-                  <div className="border-b px-5 py-2 text-xs font-medium text-muted-foreground">Output</div>
+                  <div className="border-b px-5 py-2 text-xs font-medium text-muted-foreground">
+                    {t("dashboardOutput")}
+                  </div>
                   <div className="min-h-0 flex-1 overflow-auto">
                     <pre
                       className={cn(
@@ -378,7 +387,7 @@ export default function CommandsPage() {
                         selected.is_error && "text-red-600 dark:text-red-400",
                       )}
                     >
-                      {selected.output || "(empty)"}
+                      {selected.output || t("llmRecordsEmpty")}
                     </pre>
                   </div>
                 </div>

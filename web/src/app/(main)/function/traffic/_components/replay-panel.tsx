@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import { parseRawRequest, splitReplayHeaders } from "@/lib/replay";
 import type { TrafficExchange, TrafficReplayHeader, TrafficReplayResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -45,21 +46,6 @@ function initialForm(exchange: TrafficExchange, raw: string): ReplayForm {
   };
 }
 
-const ERROR_TITLES: Record<number, string> = {
-  400: "Invalid request",
-  413: "Request body too large",
-  502: "Proxy or upstream error",
-  503: "Traffic capture is disabled",
-  504: "Timed out",
-};
-
-// The server's message, under a title that says what the status means.
-function describeError(e: unknown): { title: string; message: string } {
-  const message = e instanceof Error ? e.message : String(e);
-  if (!(e instanceof ApiError)) return { title: "Replay failed", message };
-  return { title: ERROR_TITLES[e.status] ?? `Replay failed (${e.status})`, message };
-}
-
 // ReplayPanel edits the selected exchange's request and sends it again through
 // the proxy. Host comes from the URL and hop-by-hop headers are not sent.
 export function ReplayPanel({
@@ -75,6 +61,7 @@ export function ReplayPanel({
   // Called when the replayed exchange was recorded, so the list can refetch.
   onRecorded: () => void;
 }) {
+  const { t } = useLocale();
   const [form, setForm] = React.useState<ReplayForm>(() => initialForm(exchange, raw));
   const [sending, setSending] = React.useState(false);
   const [result, setResult] = React.useState<TrafficReplayResult | null>(null);
@@ -97,6 +84,20 @@ export function ReplayPanel({
 
   // Rows the user typed that the server would not send either.
   const ignored = new Set(splitReplayHeaders(form.rows).notSent.map((n) => n.toLowerCase()));
+
+  // The server's message, under a title that says what the status means.
+  const describeError = (e: unknown): { title: string; message: string } => {
+    const message = e instanceof Error ? e.message : String(e);
+    if (!(e instanceof ApiError)) return { title: t("trafficUiReplayFailed"), message };
+    const errorTitles: Record<number, string> = {
+      400: t("trafficUiErrInvalidRequest"),
+      413: t("trafficUiErrBodyTooLarge"),
+      502: t("trafficUiErrUpstream"),
+      503: t("trafficUiErrCaptureDisabled"),
+      504: t("trafficUiErrTimeout"),
+    };
+    return { title: errorTitles[e.status] ?? `${t("trafficUiReplayFailed")} (${e.status})`, message };
+  };
 
   const send = () => {
     const gen = ++generation.current;
@@ -135,7 +136,7 @@ export function ReplayPanel({
     <div className="space-y-4 p-5">
       <div className="flex gap-2">
         <Input
-          aria-label="Method"
+          aria-label={t("assetsMethod")}
           className="w-32 font-mono uppercase"
           list={methodListId}
           value={form.method}
@@ -156,72 +157,67 @@ export function ReplayPanel({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-sm">Headers</span>
+          <span className="font-medium text-sm">{t("trafficUiHeaders")}</span>
           <Button
             size="sm"
             variant="outline"
             onClick={() => update({ rows: [...form.rows, ...toRows([{ name: "", value: "" }])] })}
           >
             <PlusIcon />
-            Add header
+            {t("trafficUiAddHeader")}
           </Button>
         </div>
-        <p className="text-muted-foreground text-xs">Host is taken from the URL.</p>
+        <p className="text-muted-foreground text-xs">{t("trafficUiHostFromUrl")}</p>
         {form.dropped.length > 0 && (
           <p className="text-muted-foreground text-xs">
-            Not sent (hop-by-hop or recomputed by the server): {form.dropped.join(", ")}
+            {t("trafficUiNotSent")} {form.dropped.join(", ")}
           </p>
         )}
         {form.rows.map((row) => (
           <div key={row.key} className="flex items-center gap-2">
             <Input
-              aria-label="Header name"
+              aria-label={t("trafficUiHeaderNameAria")}
               className={cn("w-48 font-mono text-xs", ignored.has(row.name.trim().toLowerCase()) && "line-through")}
-              placeholder="Name"
+              placeholder={t("taskName")}
               value={row.name}
               onChange={(e) => updateRow(row.key, { name: e.target.value })}
             />
             <Input
-              aria-label="Header value"
+              aria-label={t("trafficUiHeaderValueAria")}
               className="flex-1 font-mono text-xs"
-              placeholder="Value"
+              placeholder={t("trafficUiValue")}
               value={row.value}
               onChange={(e) => updateRow(row.key, { value: e.target.value })}
             />
             <Button
               size="icon"
               variant="ghost"
-              aria-label="Remove header"
+              aria-label={t("trafficUiRemoveHeader")}
               onClick={() => update({ rows: form.rows.filter((r) => r.key !== row.key) })}
             >
               <XIcon />
             </Button>
           </div>
         ))}
-        {ignored.size > 0 && (
-          <p className="text-muted-foreground text-xs">Struck-through headers are not sent by the server.</p>
-        )}
+        {ignored.size > 0 && <p className="text-muted-foreground text-xs">{t("trafficUiStruckHeadersNote")}</p>}
       </div>
 
       <div className="space-y-2">
-        <span className="font-medium text-sm">Body</span>
+        <span className="font-medium text-sm">{t("trafficUiBody")}</span>
         {form.binary ? (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 text-xs dark:text-amber-400">
-            The recorded body is binary (it contains NUL bytes). Replaying a binary body is not supported.
+            {t("trafficUiBinaryBodyNote")}
           </p>
         ) : (
           <>
             <Textarea
-              aria-label="Body"
+              aria-label={t("trafficUiBody")}
               className="font-mono text-xs"
               value={form.body}
               onChange={(e) => update({ body: e.target.value })}
             />
             {form.bodyPreviewOnly && (
-              <p className="text-amber-700 text-xs dark:text-amber-400">
-                The recorded body was too large to keep inline; only its preview is loaded, so replay is disabled for
-                this exchange.
-              </p>
+              <p className="text-amber-700 text-xs dark:text-amber-400">{t("trafficUiPreviewOnlyNote")}</p>
             )}
           </>
         )}
@@ -229,7 +225,7 @@ export function ReplayPanel({
 
       <Button onClick={send} disabled={!canSend}>
         {sending ? <Loader2Icon className="animate-spin" /> : <SendIcon />}
-        Send
+        {t("trafficUiSend")}
       </Button>
 
       {error && (
@@ -246,19 +242,19 @@ export function ReplayPanel({
               {result.status}
             </Badge>
             <span className="text-muted-foreground tabular-nums">{result.duration_ms} ms</span>
-            {result.truncated && <Badge variant="outline">truncated</Badge>}
+            {result.truncated && <Badge variant="outline">{t("trafficUiTruncated")}</Badge>}
           </div>
           {!result.recorded && (
             <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-amber-700 text-xs dark:text-amber-400">
-              Passthrough host: the response is shown here but was not recorded.
+              {t("trafficUiPassthroughNote")}
             </div>
           )}
           {sortedHeaders.length > 0 && (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Header</TableHead>
-                  <TableHead>Value</TableHead>
+                  <TableHead>{t("trafficUiHeaderColumn")}</TableHead>
+                  <TableHead>{t("trafficUiValue")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

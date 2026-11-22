@@ -278,7 +278,7 @@ Set `"runtimeMode": "depth" | "coverage" | "both"` in `config.json` (template in
 - **depth**: fake auth + `forward` to patch business codes + `stubs`; iterate `routes` (hash/history); produce `runtime_api.json`
 - **coverage**: inject `preload.js` at **document-start** (CDP `addScriptToEvaluateOnNewDocument` or a Userscript)
 
-Verify: `window.__API_RECON_PRELOAD__` exists; business paths do not fall back to `/login`.
+Verify: `window.__API_RECON_PRELOAD__` exists; business paths stay in the app shell rather than routing to `/login`.
 
 ```bash
 cd recon && npm install

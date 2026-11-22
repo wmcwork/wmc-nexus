@@ -36,7 +36,7 @@ Record these fields in the engagement workspace:
    ownership source (DNS, certificate, cloud account, written confirmation).
 3. **Classify** each planned technique:
    - *passive*: third-party sources only, no target traffic;
-   - *read-only*: safe requests that do not change state;
+   - *read-only*: safe requests that leave state unchanged;
    - *active*: direct requests that exercise the application;
    - *state-changing*: requests that modify data or configuration.
 4. **Agree** on the stop phrase and the escalation tree.

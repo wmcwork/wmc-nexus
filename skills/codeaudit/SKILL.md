@@ -42,7 +42,7 @@ For each input, trace **forward** (entry point to sink), one vuln class at a tim
 2. **Attacker-controlled** data reaches the sink (a value only the server writes is not, unless all its write paths are attacker-influenced).
 3. **New capability** for the attacker (a privilege they lack, another user's data, code execution, or a state change beyond their rights).
 
-A candidate failing any gate is a hardening note, never a finding. Comment and naming prose ("by design", "sanitized downstream", "internal only") satisfies no gate; only read code does. A sanitizer whose scope does not match the sink context (an HTML encoder guarding a URL, URL-encoding guarding SQL) is itself a finding.
+A candidate failing any gate is recorded as a hardening note, not a finding. Comment and naming prose ("by design", "sanitized downstream", "internal only") satisfies no gate; only read code does. A sanitizer whose scope does not match the sink context (an HTML encoder guarding a URL, URL-encoding guarding SQL) is itself a finding.
 
 ## Verification (beyond the standing adversarial gate)
 

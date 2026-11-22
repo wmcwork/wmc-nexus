@@ -27,7 +27,7 @@ into a stable, professional release.
   agents, commands, traffic, task detail/flows).
 - Turkish Windows setup guide and README links.
 
-## Milestone B — Full Turkish UI (in progress)
+## Milestone B — Full Turkish UI (done, pending manual smoke)
 
 Acceptance criteria:
 
@@ -42,10 +42,12 @@ error toasts, empty states, aria labels and date/number formatting.
 
 ## Milestone C — Red Team skill catalog v1
 
+Status: v1 authored on 2026-11-22, 11 first-party skills. Dry-runs and second-person review remain.
+
 Goal: a curated, stable catalog of first-party skills that a professional
 engagement can rely on.
 
-Initial catalog (proposed):
+v1 catalog (authored; each entry stays draft until reviewed and dry-run):
 
 | Skill | Purpose | Default mode |
 | --- | --- | --- |

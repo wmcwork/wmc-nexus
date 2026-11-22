@@ -53,7 +53,11 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $env:PGPASSWORD = $Password
-$exists = (& (Join-Path $bin "psql.exe") -U postgres -h 127.0.0.1 -p $Port -tAc "SELECT 1 FROM pg_database WHERE datname='wmc'").Trim()
+$probe = & (Join-Path $bin "psql.exe") -U postgres -h 127.0.0.1 -p $Port -tAc "SELECT 1 FROM pg_database WHERE datname='wmc'" 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "psql failed with exit code $LASTEXITCODE - $probe"
+}
+$exists = ("$probe").Trim()
 if ($exists -ne "1") {
     Write-Host "[pg] Creating database wmc..."
     & (Join-Path $bin "createdb.exe") -U postgres -h 127.0.0.1 -p $Port wmc

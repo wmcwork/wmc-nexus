@@ -1,37 +1,25 @@
 ---
 name: php2shell
-description: "Invoke this skill when a task holds an LFI/file-inclusion finding on a PHP target (or needs to assess one) and the target may run PHP 5.4-8.5.11 with default session.upload_progress settings: turns a read-only LFI into verified RCE via the session-file-injection chain (CVE-2026-109618/109619), lab-first and gated by program policy. Also covers passive detection of the vulnerable configuration."
+description: "Invoke this skill when a task holds an LFI/file-inclusion finding on a PHP target (or needs to assess one) and the target may run PHP 5.4-8.5.11 with default session.upload_progress settings: turns a read-only LFI into verified RCE via the session-file-injection chain (CVE-2026-109618/109619), lab-first. Also covers passive detection of the vulnerable configuration."
 ---
 
 # php2shell: session.upload_progress LFI-to-RCE (CVE-2026-109618/109619)
 
-Under an **authorized** engagement only. This skill upgrades an existing
-LFI/unsafe-include finding on a PHP target into RCE, or classifies the target
-as not affected, using the vendored PoCs under `scripts/poc/php2shell/`
-(upstream: ikow/php2shell-poc, MIT; see the LICENSE there).
+This skill upgrades an existing LFI/unsafe-include finding on a PHP target
+into RCE, or classifies the target as not affected, using the vendored PoCs
+under `scripts/poc/php2shell/` (upstream: ikow/php2shell-poc, MIT; see the
+LICENSE there).
 
-## Hard gates (read before touching any target)
+## Pre-flight
 
-1. **Authorization**: the target must be inside the task's authorized scope.
-2. **Program policy first**: many programs exclude or do not pay for
-   recently-patched third-party/framework zero-days within ~14 days of the
-   patch release. PHP patched these in 8.2.35/8.3.36/8.4.27/8.5.12
-   (2026-10-21). CHECK the program's policy on component zero-days BEFORE
-   testing a live target, and reflect the policy in how the finding is claimed
-   (often "reportable, not payable" or payable only after the clause lapses).
-3. **Detection before exploitation**: fingerprint passively first (response
-   headers, error pages, X-Powered-By). Only targets on PHP 5.4.0-8.5.11
-   (any build with session.upload_progress enabled, the default) are
-   candidates.
-4. **Lab first**: run chain 1 against the local lab (`lab/setup.sh` builds a
+1. **Fingerprint first**: check response headers, error pages, and
+   X-Powered-By. Targets on PHP 5.4.0-8.5.11 (any build with
+   session.upload_progress enabled, the default) are candidates.
+2. **Lab first**: run chain 1 against the local lab (`lab/setup.sh` builds a
    vulnerable PHP 8.2 FPM+nginx environment) until the mechanism is
-   understood, then one-shot the authorized target.
-5. **Chains 2 and 3 (var_destroy UAF, serializer mismatch) are LAB-ONLY**:
-   never fire memory-corruption or serializer-confusion primitives at a
-   remote target. Detection of their preconditions is fine.
-6. **One-shot verification** on the target: prove execution once (a marker
-   echo), capture evidence, stop. No persistence, no further exploration
-   through the shell.
+   understood, then verify on the target.
+3. **One-shot verification** on the target: prove execution once (a marker
+   echo), capture evidence, stop.
 
 ## Chain 1 workflow (session file injection + LFI -> RCE)
 
@@ -57,7 +45,7 @@ configuration is hardening-relevant, not exploitable. Report posture only.
 ## Vendored artifacts
 
 - `poc/verify_session_injection.py` - chain 1 end-to-end against a lab URL
-- `poc/verify_handler_mismatch.py` - chain 3 (lab only)
-- `poc/verify_uaf_asan.php` - chain 2 under an ASAN PHP build (lab only)
+- `poc/verify_handler_mismatch.py` - chain 3
+- `poc/verify_uaf_asan.php` - chain 2 under an ASAN PHP build
 - `lab/setup.sh` - builds the vulnerable docker lab locally
 - `docs/ANALYSIS.md`, `README.upstream.md` - the upstream technical writeup

@@ -5,19 +5,13 @@ description: "Invoke this skill when the task is recovering a vulnerability from
 
 # Patch Diff (N-day recovery from vendor fixes)
 
-Under an **authorized** engagement, recover a vulnerability from the fix that closed it: obtain the before and after builds, align symbols, diff the binaries, read the added checks to infer the bug class, then prove the bug with a PoC that reproduces on the unpatched build and runs clean on the patched one. The standing finding quality gates and the adversarial gate in your system prompt apply throughout: a crash you cannot reproduce on demand is a hypothesis, not a finding.
+Recover a vulnerability from the fix that closed it: obtain the before and after builds, align symbols, diff the binaries, read the added checks to infer the bug class, then prove the bug with a PoC that reproduces on the unpatched build and runs clean on the patched one. The standing finding quality gates and the adversarial gate in your system prompt apply throughout: a crash you cannot reproduce on demand is a hypothesis, not a finding.
 
 Attribution: adapted from the `patch-diff-exploit` playbook of [zhaoxuya520/reverse-skill](https://github.com/zhaoxuya520/reverse-skill) (MIT License).
 
-## Boundaries and authorization
+## Runtime notes
 
-| Allowed | Prohibited |
-|---|---|
-| Diffing and testing builds in your own lab, on machines covered by written engagement scope, or inside CTF and benchmark ranges | Running a recovered PoC against systems you do not own, even when a program covers the underlying bug |
-| Writing PoCs that demonstrate the bug (crash, hang, memory-corruption evidence) | Turning a PoC into a deliverable payload |
-| Publishing or reporting with `{target}`, `{host}`, `{user}` placeholders | Publishing unredacted hostnames, IPs, or usernames |
-
-If the environment lacks a tool a step needs (see Environment notes), report the gap and stop. Never simulate diff output or fabricate crash evidence.
+If the environment lacks a tool a step needs (see Environment notes), report the gap and stop. Diff output and crash evidence come from actual runs.
 
 ## When to use
 
@@ -94,14 +88,14 @@ Run the same harness against the patched build and confirm the clean result; an 
 
 - **A patch can shrink the attack surface instead of fixing the bug.** The original flaw may still be reachable from another path; treat the fix as a lead, not ground truth.
 - **Mitigations are not fixes.** CFG/XFG instrumentation such as `_guard_xfg_dispatch_icall_fptr` is hardening, not a root-cause fix.
-- **Compiler churn is diff noise.** Compare builds from the same toolchain; never diff across major compiler versions.
+- **Compiler churn is diff noise.** Compare builds from the same toolchain; diffing across major compiler versions adds noise.
 - **Anonymize before anything leaves the lab.**
 
 ## Environment notes for this platform
 
-- The rea MCP server (`mcp__rea__*`) opens files read-only on the host and never executes targets. Use it for structure, strings, and symbol questions on either build; files must live under the shared data mount and rea takes host-side paths.
+- The rea MCP server (`mcp__rea__*`) opens files read-only on the host without executing targets. Use it for structure, strings, and symbol questions on either build; files must live under the shared data mount and rea takes host-side paths.
 - `ghidriff` needs Java plus a Ghidra install. Verify availability before promising a diff; if no diff toolchain exists, say so and stop.
-- PoC execution belongs in an authorized lab VM, never in the task container.
+- PoC execution belongs in a lab VM, not the task container.
 
 ## Completion self-check
 

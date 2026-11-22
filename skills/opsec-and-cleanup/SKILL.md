@@ -1,24 +1,20 @@
 ---
 name: opsec-and-cleanup
-description: "Use when running or closing an authorized engagement that needs attribution, deconfliction with defenders, a recorded artefact inventory, and verified removal of every change made, without touching logs or client data."
+description: "Use when running or closing an engagement that needs attribution, deconfliction with defenders, a recorded artefact inventory, and verified removal of every change made."
 allowed-tools: Read Write Bash(sha256sum:*) Bash(stat:*) Bash(date:*)
 ---
 
 # Operational security and cleanup
 
-Keeps an authorized engagement attributable, observable by the client, and
-reversible. OPSEC here means controlling your own footprint so defenders can
-recognise it and the report can explain it, not hiding from detection. Cleanup
-means returning the environment to its recorded baseline and proving it.
-
-Log tampering, agent disabling, timestomping, and history clearing are
-anti-forensic actions and are prohibited outright. They destroy the evidence
-the client paid for and are outside any acceptable rules of engagement.
+Keeps an engagement attributable, observable by the client, and reversible.
+OPSEC here means controlling your own footprint so defenders can recognise it
+and the report can explain it, not hiding from detection. Cleanup means
+returning the environment to its recorded baseline and proving it.
 
 ## Preconditions
 
 - A change log exists before the first change, with fields for time, operator,
-  target, action, approval, and rollback.
+  target, action, and rollback.
 - A baseline capture is stored for every object class that testing may touch.
 - Evidence storage is encrypted and access is limited to the named team.
 - The team knows which controls are expected to alert, so an alert is treated
@@ -44,18 +40,17 @@ accounts and group membership, DNS records, firewall rules, scheduled tasks,
 services, cloud resources, and file locations used for uploads. Hash the
 baseline exports.
 
-Verify: the baseline covers every planned change target, and the engagement
-owner has signed off on the restore expectations. A target without a baseline
-cannot be changed.
+Verify: the baseline covers every planned change target, and the restore
+expectations are recorded.
 
 ### Phase 3: Control every change
 
-Log each state change before executing it, including the exact rollback step
-and the approver. Keep the log append-only during the engagement. Batch related
+Log each state change before executing it, including the exact rollback step.
+Keep the log append-only during the engagement. Batch related
 changes so rollback is a single ordered operation.
 
-Verify: every executed change has a matching log entry with an approver and a
-tested rollback. Changes without an entry are reverted immediately.
+Verify: every executed change has a matching log entry with a tested rollback.
+Changes without an entry are reverted immediately.
 
 ### Phase 4: Review the observed footprint
 
@@ -102,19 +97,20 @@ and evidence manifest are linked from the engagement record.
 Store under `<engagement>/opsec/<UTC timestamp>/`. Keep the change log,
 baseline exports and hashes, deconfliction acknowledgements, the detection
 coverage table, and the final diff. Hash each artefact with SHA-256 at creation
-and again at handover. Redact credentials and personal data, and never place a
-recovered secret in the change log; reference the vault entry instead.
+and again at handover. Redact credentials and personal data; a recovered
+secret is referenced by its vault entry rather than written into the change
+log.
 
 ## Failure handling
 
 - Rollback fails: stop testing, escalate to the owner, and document the exact
   state rather than attempting improvised repairs.
 - Baseline drift from unrelated change: capture the new state, attribute it,
-  and exclude it from the restore diff with the owner's approval.
+  and exclude it from the restore diff, recording why.
 - Lost log entry: reconstruct from shell history and timestamps, mark it
   reconstructed, and have the owner countersign.
 - Deconfliction channel down: pause state-changing work and use the emergency
-  contact; never continue silently.
+  contact.
 - Destruction cannot be completed: record the retained copies and the reason,
   and escalate to legal or the owner.
 

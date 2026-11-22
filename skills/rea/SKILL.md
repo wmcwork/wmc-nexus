@@ -6,7 +6,7 @@ mcps: rea
 
 # rea: binary and application reverse engineering
 
-The rea MCP server runs on the host machine, not inside this container. Its tools are named `mcp__rea__<tool>`. After this skill loads, their names appear as deferred tools: fetch each tool's schema with SearchExtraTools (for example `select:mcp__rea__open_binary`, or keywords like `rea strings`), then invoke it with ExecuteExtraTool. Use the tool that directly answers the question; do not enumerate the whole catalog.
+The rea MCP server runs on the host machine, not inside this container. Its tools are named `mcp__rea__<tool>`. After this skill loads, their names appear as deferred tools: fetch each tool's schema with SearchExtraTools (for example `select:mcp__rea__open_binary`, or keywords like `rea strings`), then invoke it with ExecuteExtraTool. Use the tool that directly answers the question rather than enumerating the whole catalog.
 
 ## 1. File paths: container view vs host view
 
@@ -21,9 +21,9 @@ Rules:
 
 1. `open_binary` with `path` (host path). For native binaries (ELF, PE, Mach-O) set `provider_id: "ghidra"`; if the error lists candidate provider ids, retry with one of them. Packages and bundles (APK, IPA, HAP, zip, JAR, wasm, JavaScript) need no provider.
 2. Run analysis tools (`search_strings`, `list_strings`, `search_procedures`, `inspect_native_*`, `project_managed_application_graph`, family-specific graph tools, ...). Results are Evidence objects: they carry an evidence id, a normalized result, and a limitations section. Record anything task-relevant as facts in the knowledge graph and cite the evidence id in findings.
-3. `close_binary` when done. One open target per session; close before opening another. Never leave a binary open at the end of a run.
+3. `close_binary` when done. One open target per session; close before opening another, and close each binary at the end of a run.
 
-## 3. What to use it for (authorized targets only)
+## 3. What to use it for
 
 - Client-side artifacts fetched from an in-scope target: mobile apps (APK, IPA, HAP), desktop binaries, Electron app archives, obfuscated JavaScript bundles, wasm modules.
 - Embedded secrets and configuration: API keys, tokens, endpoints, debug flags, test accounts (`search_strings` with patterns like `key`, `token`, `secret`, `password`, `http`, base64 blobs).
@@ -35,5 +35,5 @@ Rules:
 - Prefer scoped queries (one string pattern, one procedure) over whole-binary deep passes; some analyses take minutes. If the server is configured with a short request timeout, budget accordingly.
 - Large results are truncated to the session output limit with spill to disk; narrow the query instead of paging through huge output.
 - If a call fails with `capability_unavailable`, read the message: it usually lists the exact candidate provider ids or the remediation to apply.
-- rea reads files only; it never executes the target.
-- rea cannot see container-only paths; do not try to open files outside the shared data mount.
+- rea is read-only: it performs static analysis without executing the target.
+- rea cannot see container-only paths; keep target files under the shared data mount.

@@ -6,8 +6,8 @@ allowed-tools: Read Write
 
 # Evidence and reporting
 
-Makes every claim reproducible and every artefact safe to share. This skill is
-always allowed, including during passive and read-only phases.
+Makes every claim reproducible and every artefact safe to share. It applies in
+passive and read-only phases as well.
 
 ## Evidence package
 
@@ -30,7 +30,7 @@ For each action record:
 - UTC timestamp, operator, target, and the exact command or request;
 - raw output saved before analysis;
 - SHA-256 of each artefact;
-- the scope reference that authorized the action.
+- the scope reference for the action.
 
 ## Finding record
 

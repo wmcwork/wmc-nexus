@@ -1,6 +1,6 @@
 ---
 name: cloud-recon
-description: "Use when reviewing the read-only security posture of an authorized AWS, Azure, or Google Cloud estate: identity, network exposure, storage configuration, and logging coverage, without changing cloud state."
+description: "Use when reviewing the read-only security posture of an AWS, Azure, or Google Cloud estate: identity, network exposure, storage configuration, and logging coverage, without changing cloud state."
 allowed-tools: Read Write Bash(aws:*) Bash(az:*) Bash(gcloud:*) Bash(jq:*)
 ---
 
@@ -8,23 +8,22 @@ allowed-tools: Read Write Bash(aws:*) Bash(az:*) Bash(gcloud:*) Bash(jq:*)
 
 Collects configuration facts from cloud control planes using read-only API
 calls, then ranks exposure by internet reachability, privilege, and data
-sensitivity. Nothing in this skill creates, changes, or deletes a resource, and
-nothing reads object contents. Written approval per provider account is part of
-the engagement record, not an assumption from a shared parent company.
+sensitivity. The work is describe and get-configuration reads of configuration
+metadata.
 
 ## Preconditions
 
 - Provider CLI version pinned and recorded, with a named profile per account.
-- Credentials loaded from the vault into the CLI session, not exported into
-  shell history or committed files.
+- Credentials loaded from the vault into the CLI session rather than exported
+  into shell history or committed files.
 - A working directory per account under the engagement evidence tree.
 - Command logging enabled for the session, so the review can prove every call
   was a read.
-- Console access, if any, restricted to the same principals and recorded.
+- Console access, if any, uses the same principals and is recorded.
 
 ## Workflow
 
-### Phase 1: Prove identity and the boundary
+### Phase 1: Prove identity
 
 Resolve the calling principal and its account:
 
@@ -48,7 +47,7 @@ subscriptions, projects, and enabled regions. Capture tags and labels that
 identify environment and owner, because they drive later prioritisation.
 
 Verify: the count of accounts and projects matches the record, or the
-difference is explained and approved. Unlisted regions are recorded as not
+difference is explained in the record. Unlisted regions are recorded as not
 reviewed rather than sampled silently.
 
 ### Phase 3: Review identity and access
@@ -76,7 +75,7 @@ marker, and each path statement names the rule that permits it.
 
 Record public access settings, bucket or container policies, encryption
 configuration, key ownership, versioning, soft delete, and access logging.
-Use describe and get-configuration calls only; never list or fetch objects.
+Use describe and get-configuration calls only.
 
 Verify: the call log for this phase contains no object read. Any call that
 would return content is removed and noted as a gap.
@@ -105,19 +104,18 @@ Store per account under `<engagement>/cloud/<provider>/<account-id>/<UTC
 timestamp>/`. Keep raw JSON responses, the sanitized report, the command log,
 and a manifest with SHA-256 hashes. Redact account aliases, email addresses,
 and any secret value returned unexpectedly; a secret in output triggers the
-stop conditions. Never paste raw policy documents containing principal emails
-into the final report without redaction.
+stop conditions.
 
 ## Failure handling
 
 - Access denied: record the gap and the missing permission, then continue with
-  the next control. Do not request broader rights.
+  the next control.
 - Throttling: exponential backoff with jitter, reduce page size, and spread
   calls across regions.
 - Disabled or unsupported region: skip it and list it as not reviewed.
 - CLI profile confusion: stop, re-resolve the identity, and restart the phase
   rather than mixing accounts in one output directory.
-- Partial pagination: re-run the page; never extrapolate counts.
+- Partial pagination: re-run the page rather than extrapolating counts.
 
 ## References
 

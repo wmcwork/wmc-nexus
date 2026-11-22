@@ -327,7 +327,7 @@ A JSON object: multiple values for the same key mean **OR**; different keys mean
 **Notes:**
 
 - With a project constraint, include `filter.project` (when supported); without project context it is optional
-- Do not put the project display name in `filter.project`
+- `filter.project` takes the project ObjectID, not the display name
 - Use `==` for known values and `^` for prefixes; avoid heavy `=` fuzzy matching on large tables
 - UrlScan HTTP status goes in `filter.status`; DirScanResult can use `statuscode==200` in search
 - SensitiveResult by rule name: use `sname=rule-name` in `search`, or `filter.sname`
@@ -357,7 +357,7 @@ Other types ignore `sort` and use the default time-based ordering.
 | --------- | -------------------------------------------------- |
 | No MCP tools | Check the URL, the API Key, and whether ScopeSentry is running |
 | 401 / 403 | Recreate or replace the API Key |
-| Assets not found | Confirm `filter.project` is an ObjectID; do not put project in search |
+| Assets not found | Confirm `filter.project` is an ObjectID; project is not valid in search |
 | Template/task creation failed | `template` must be a template ObjectID; `node` takes an online node name |
 | Queries slow/stuck | Add `filter.project` when you have a project; in search use `==` or `^` prefixes on indexed fields, use `=` sparingly; reduce `pageSize` |
 

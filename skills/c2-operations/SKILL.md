@@ -1,21 +1,21 @@
 ---
 name: c2-operations
-description: "Use when standing up and operating an authorized command-and-control capability for a red-team exercise, covering scoping, owned infrastructure, logging, deconfliction, evidence and teardown."
+description: "Use when standing up and operating a command-and-control capability for a red-team exercise, covering scoping, owned infrastructure, logging, deconfliction, evidence and teardown."
 allowed-tools: Read Write Bash(dig:*) Bash(openssl:*)
 ---
 
 # C2 operations
 
-Plans and runs a command-and-control tier for an authorized red-team exercise.
+Plans and runs a command-and-control tier for a red-team exercise.
 The work is infrastructure ownership, scoping, logging, and control, not
-malware development. Every session must trace to an in-scope host and to a
-written approval for that phase of the exercise.
+malware development. Every session traces to a scoped host and a recorded
+phase entry.
 
 ## Preconditions
 
-- A framework is selected from the approved list and pinned to a version.
-  Commercial platforms and maintained open-source frameworks are acceptable;
-  unmaintained or repackaged builds are not.
+- A framework is selected and pinned to a version, preferring commercial
+  platforms and maintained open-source frameworks over unmaintained or
+  repackaged builds.
 - Every domain and server is owned by the engagement, with expiry dates and
   renewal owners recorded.
 - Operator access uses individual accounts, MFA, and an out-of-band management
@@ -28,11 +28,11 @@ written approval for that phase of the exercise.
 
 ## Workflow
 
-1. **Freeze the scope and the call-back plan.** Record every approved target,
-   the allowed source ranges, the listener inventory, and the check-in
-   schedule. Map each planned listener to a purpose and an owner.
-   Verify: every listener and target appears on the approved asset list, and
-   the owner signs the inventory before provisioning starts.
+1. **Freeze the scope and the call-back plan.** Record every target, the source
+   ranges, the listener inventory, and the check-in schedule. Map each planned
+   listener to a purpose and an owner.
+   Verify: every listener and target appears on the asset list, and the
+   inventory is signed before provisioning starts.
 
 2. **Design the tiering.** Separate operator access, team server, redirectors,
    and egress. Define which tier terminates TLS, where logs are written, and
@@ -42,21 +42,20 @@ written approval for that phase of the exercise.
    purpose, and no single component is both the only log store and the only
    access path.
 
-3. **Provision owned infrastructure.** Register domains through the approved
-   account, create servers in the approved tenancy, and configure DNS with
+3. **Provision owned infrastructure.** Register domains through the engagement
+   account, create servers in the engagement tenancy, and configure DNS with
    explicit records. Apply provider MFA, restrict management access by source,
    disable password login, patch the base image, and enable host firewalls.
    Verify: WHOIS and DNS match the engagement records, only intended ports are
    reachable from the internet, and default accounts are removed. Confirm
    certificate validity with `openssl s_client`.
 
-4. **Configure the framework within policy.** Set the listener addresses,
-   check-in interval, jitter, kill date, and logging destinations. Do not
-   enable features that exceed the approved technique list. Export the
-   configuration and hash it.
-   Verify: a second operator reviews the configuration against the approval,
-   the hash is recorded, and the kill date is earlier than the domain and
-   certificate expiry.
+4. **Configure the framework.** Set the listener addresses, check-in interval,
+   jitter, kill date, and logging destinations. Export the configuration and
+   hash it.
+   Verify: a second operator reviews the configuration against the recorded
+   settings, the hash is recorded, and the kill date is earlier than the domain
+   and certificate expiry.
 
 5. **Instrument logging and deconfliction.** Ship framework logs, auth logs,
    DNS logs, and proxy logs to the external sink. Confirm timestamps use UTC.
@@ -66,20 +65,18 @@ written approval for that phase of the exercise.
    receipt. A log gap is a blocker, not a note.
 
 6. **Dry run in the lab.** Start one listener, connect one disposable lab host
-   with a benign check-in, and perform no post-exploitation. Exercise the kill
-   switch and confirm the callback stops.
+   with a benign check-in, and exercise the kill switch from that session.
+   Confirm the callback stops.
    Verify: the session appears in the console, the event correlates across
    logs, the kill switch stops the callback within the agreed time, and the
    lab host is removed from the inventory.
 
 7. **Operate inside the window.** Before each host action, confirm the host is
-   on the approved list and the action is on the approved technique list. Prefer
-   read-only collection. Record the operator, host, action, timestamp, and
-   result for every task. Keep at least two operators reachable during active
-   hours.
+   on the asset list and the action is on the technique list. Prefer read-only
+   collection. Record the operator, host, action, timestamp, and result for
+   every task. Keep at least two operators reachable during active hours.
    Verify: at every shift handover the active session list reconciles with the
-   scope record, and every recorded action has an approval reference where one
-   is required.
+   scope record, and every recorded action has a matching entry in the task log.
 
 8. **Capture evidence and hand over.** Export session logs, task history, and
    relevant screenshots. Redact secrets, tokens, and personal data. Hash each
@@ -98,7 +95,7 @@ written approval for that phase of the exercise.
 
 | Artifact | Content | Handling |
 | --- | --- | --- |
-| Scope and approval | Assets, techniques, window, contacts | Engagement store |
+| Scope record | Assets, techniques, window, contacts | Engagement store |
 | Asset table | Domain, provider, purpose, owner, expiry | Versioned, access controlled |
 | Listener inventory | Address, port, tier, certificate, owner | Hash and store |
 | Configuration export | Framework settings and hash | Store, no secrets in clear |
@@ -108,26 +105,24 @@ written approval for that phase of the exercise.
 | Evidence index | File, hash, description, custodian | Chain of custody |
 | Teardown record | Components destroyed, confirmations | Signed by owner |
 
-Store logs outside the C2 host. Never place credentials, tokens, or captured
-personal data in the evidence set. Session identifiers and internal addresses
+Store logs outside the C2 host. Credentials, tokens, and captured personal
+data stay out of the evidence set. Session identifiers and internal addresses
 are redacted in the client report unless the client explicitly needs them.
 
 ## Failure handling
 
-- Redirector or listener down: fail closed. Do not add an unapproved fallback
-  channel or a new domain.
+- Redirector or listener down: fail closed and record the gap.
 - Certificate expiry or mismatch: rotate before the next check-in window and
-  record the change. Never disable verification.
+  record the change.
 - Log gap or clock drift: pause operations until the sink is healthy and time
   is synchronized.
-- Session loss on an in-scope host: re-establish only through an approved
-  listener, and only after confirming the host is still in scope.
+- Session loss on an in-scope host: re-establish through a listener from the
+  inventory, after confirming the host is still in scope.
 - Framework defect or crash: snapshot the state, preserve logs, and report.
-  Do not patch production infrastructure mid-exercise without approval.
 - Provider suspension: stop, notify the owner, and follow the teardown plan
   rather than opening replacement infrastructure.
-- Do not repeat a failed action more than twice without changing approach and
-  recording why.
+- A failed action is repeated at most twice before the approach changes and
+  the reason is recorded.
 
 ## References
 

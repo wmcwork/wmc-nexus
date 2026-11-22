@@ -10,16 +10,16 @@ approved (reviewed for this release).
 
 | Skill | Purpose | Risk | Status | Provenance |
 | --- | --- | --- | --- | --- |
-| api-recon | Frontend/API surface discovery under scope | read-only | shipped | ARTEX upstream |
-| api-security | API authorization and data-exposure testing | gated | shipped | ARTEX upstream |
-| bbot-recon | Recursive recon with program-policy gates | read-only | shipped | ARTEX upstream |
-| codeaudit | Source review workflow | read-only | shipped | ARTEX upstream |
-| edr-bypass-re | EDR evasion research in a lab | offensive | shipped | ARTEX upstream |
-| patch-diff | Patch and diff analysis | read-only | shipped | ARTEX upstream |
-| php2shell | PHP code-path analysis in a lab | offensive | shipped | ARTEX upstream |
-| playwright-cli | Browser automation for authorized testing | gated | shipped | ARTEX upstream |
-| rea | Reverse-engineering analysis | read-only | shipped | ARTEX upstream |
-| scopesentry | Scope enforcement and validation | read-only | shipped | ARTEX upstream |
+| api-recon | Frontend/API surface discovery under scope | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
+| api-security | API authorization and data-exposure testing | gated | shipped | ARTEX upstream; modified 2026-11-22 |
+| bbot-recon | Recursive recon with program-policy gates | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
+| codeaudit | Source review workflow | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
+| edr-bypass-re | EDR evasion research in a lab | offensive | shipped | ARTEX upstream; modified 2026-11-22 |
+| patch-diff | Patch and diff analysis | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
+| php2shell | PHP code-path analysis in a lab | offensive | shipped | ARTEX upstream; modified 2026-11-22 |
+| playwright-cli | Browser automation for authorized testing | gated | shipped | ARTEX upstream; modified 2026-11-22 |
+| rea | Reverse-engineering analysis | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
+| scopesentry | Scope enforcement and validation | read-only | shipped | ARTEX upstream; modified 2026-11-22 |
 | engagement-scoping | Scope, RoE and contacts | read-only | draft | first-party (2026-11-22) |
 | passive-recon | External attack-surface mapping without target traffic | read-only | draft | first-party (2026-11-22) |
 | evidence-and-reporting | Evidence, redaction, severity, reporting | read-only | draft | first-party (2026-11-22) |

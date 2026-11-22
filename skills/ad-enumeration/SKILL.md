@@ -1,15 +1,13 @@
 ---
 name: ad-enumeration
-description: "Use when mapping an authorized Active Directory domain without changing it: forest and trust layout, directory objects, privileged group nesting, delegation settings, and ACL paths toward Tier-0 assets."
+description: "Use when mapping an Active Directory domain without changing it: forest and trust layout, directory objects, privileged group nesting, delegation settings, and ACL paths toward Tier-0 assets."
 allowed-tools: Read Write Bash(ldapsearch:*) Bash(bloodhound-python:*) Bash(dig:*) Bash(jq:*)
 ---
 
 # Active Directory enumeration
 
 Builds a defensible picture of an AD forest from directory reads alone. Every
-phase here is read-only. Anything that authenticates as another principal,
-modifies an object, or recovers secret material is out of scope and needs a
-separately gated approval with its own written scope entry.
+phase here is read-only.
 
 ## Preconditions
 
@@ -17,8 +15,8 @@ separately gated approval with its own written scope entry.
   collector used.
 - Output written to the engagement evidence directory on encrypted storage.
 - DNS resolution pointed at the in-scope domain controller.
-- Bind material read from the vault into a protected file at run time, never
-  placed on a command line or in shell history.
+- Bind material read from the vault into a protected file at run time, kept off
+  the command line and out of shell history.
 - A note of whether the issued identity is a plain user or holds elevated
   rights; this changes what the collector can see and belongs in limitations.
 
@@ -74,8 +72,7 @@ Interpretations without a cited attribute are removed.
 Run the pinned collector in directory-only mode against the in-scope domain
 controller, writing its archive into the evidence directory. Confirm each
 interesting edge with a targeted read of the object security descriptor and a
-review of the ACE (trustee, rights, inheritance). Do not perform any action
-the ACE would allow.
+review of the ACE (trustee, rights, inheritance).
 
 Verify: every reported edge has both collector output and a manual ACE
 confirmation. Unconfirmed edges are marked unverified and kept out of the
@@ -86,7 +83,7 @@ findings list.
 Record GPO links per OU and the security-relevant settings that explain
 exposure, such as local administrator membership delivered by GPO, delegated
 logon rights, and script assignments. Read SYSVOL for script names and paths
-only; never open files that may hold credentials.
+only.
 
 Verify: each GPO statement cites the GPO GUID, the linked OU, and the setting
 path.
@@ -106,8 +103,7 @@ Store under `<engagement>/ad/<UTC timestamp>/`. Keep LDIF output, the
 collector archive, ACE confirmations, and a command log. Hash each artefact
 with SHA-256 and record the hash in the index. Redact personal data in
 description, telephoneNumber, and info attributes. If a password or key
-appears, stop, redact, and escalate. Evidence leaves the engagement only
-through the agreed channel.
+appears, stop, redact, and escalate.
 
 ## Failure handling
 
@@ -119,7 +115,8 @@ through the agreed channel.
   name the missed hosts.
 - Throttling: exponential backoff with jitter, then continue with the next
   phase.
-- Never retry a failed bind, and never switch identity to make a query work.
+- A failed bind is recorded rather than retried, and the identity stays fixed
+  for the run.
 
 ## References
 

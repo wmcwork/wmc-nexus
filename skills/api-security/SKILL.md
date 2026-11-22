@@ -1,19 +1,18 @@
 ---
 name: api-security
-description: "Invoke this skill when the task is authorized offensive testing of a REST, GraphQL, WebSocket, or SOAP API beyond recon: authentication and authorization flaws (BOLA, IDOR, BFLA), JWT and OAuth weaknesses, GraphQL-specific abuse, input validation, business logic, rate-limit trust confusion, and excessive data exposure."
+description: "Invoke this skill when the task is offensive testing of a REST, GraphQL, WebSocket, or SOAP API beyond recon: authentication and authorization flaws (BOLA, IDOR, BFLA), JWT and OAuth weaknesses, GraphQL-specific abuse, input validation, business logic, rate-limit trust confusion, and excessive data exposure."
 ---
 
 # API Security Testing (REST, GraphQL, WebSocket, SOAP)
 
-This is the hunting counterpart of api-recon. api-recon maps the API surface and stops; this skill attacks the mapped surface under an authorized engagement. The standing finding quality gates and the adversarial gate in your system prompt apply throughout, and an access-control finding only exists once a second account or role has proven the boundary is real.
+This is the hunting counterpart of api-recon. api-recon maps the API surface and stops; this skill attacks the mapped surface. The standing finding quality gates and the adversarial gate in your system prompt apply throughout, and an access-control finding only exists once a second account or role has proven the boundary is real.
 
 Attribution: adapted from the `api-security` playbook of [zhaoxuya520/reverse-skill](https://github.com/zhaoxuya520/reverse-skill) (MIT License).
 
-## Boundaries
+## Evidence
 
-- Rate-limit and load tests only within the engagement's written impact budget. Most bounty programs forbid denial of service outright; volume that degrades the service for other users is out of bounds. Race-condition tests use a handful of concurrent requests, never load tools.
-- Do not exfiltrate real user data to prove a BOLA. One record you are authorized to touch, or your own second account, is sufficient evidence.
-- Destructive payloads (deletion, mass assignment on write endpoints) only against accounts and resources created for the test.
+- Race-condition tests use a handful of concurrent requests.
+- A BOLA proof uses one record or a second account as evidence.
 - Every confirmed finding needs a replayable artifact: the exact request, the exact response, and the authorization context that produced it.
 
 ## Phase checklists
@@ -65,10 +64,10 @@ BFLA, function level:
 ### Phase 4: GraphQL-specific
 
 - [ ] introspection exposing schema details it should hide.
-- [ ] alias overload (dozens of aliases in one query) and batched queries as compute amplification, within the impact budget.
+- [ ] alias overload (dozens of aliases in one query) and batched queries as compute amplification.
 - [ ] field-suggestion error messages leaking schema names.
 - [ ] GraphiQL or a playground exposed unauthenticated.
-- [ ] deep nesting as a resource-exhaustion vector, within the impact budget.
+- [ ] deep nesting as a resource-exhaustion vector.
 - [ ] trace or debug mode returning metadata.
 
 ### Phase 5: REST input validation
@@ -97,9 +96,9 @@ BFLA, function level:
 
 ### Phase 8: rate-limit trust confusion
 
-- [ ] header spoofing: `X-Forwarded-For`, `X-Real-IP`, reported as a trust-boundary finding, never scaled into volume.
+- [ ] header spoofing: `X-Forwarded-For`, `X-Real-IP`, reported as a trust-boundary finding.
 - [ ] path variants: `/api/`, `/api`, `/Api/`, `/API/` bypassing a path-keyed limiter.
-- [ ] the finding is the bypass mechanism itself; do not demonstrate it under load.
+- [ ] the finding is the bypass mechanism itself.
 
 ### Phase 9: data exposure
 

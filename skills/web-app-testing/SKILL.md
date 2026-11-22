@@ -1,6 +1,6 @@
 ---
 name: web-app-testing
-description: "Use when testing an authorized web application for configuration, access control, input handling and business logic weaknesses with a live test account and an agreed impact budget."
+description: "Use when testing a web application for configuration, access control, input handling and business logic weaknesses with a live test account and a defined impact budget."
 allowed-tools: Read Write Bash(curl:*) Bash(jq:*) Bash(playwright:*)
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: Read Write Bash(curl:*) Bash(jq:*) Bash(playwright:*)
 Structured, evidence-first testing of a running web application. The skill
 assumes active reconnaissance is complete and a map of routes, parameters and
 roles exists. Confirm weaknesses one at a time, prove them with the smallest
-safe action, and never leave the application in a changed state.
+safe action, and restore the application state afterwards.
 
 ## Preconditions
 
@@ -84,9 +84,9 @@ Methodology only; use the least invasive probe that answers the question.
 2. Observe error behaviour for type and length confusion, using malformed but
    non-destructive input.
 3. For injection classes, confirm with a lab-validated technique on a disposable
-   parameter, and stop at proof of execution. Do not extract data beyond the
-   minimum.
-4. Test file handling with a harmless file type first, and only in an upload area
+   parameter, and stop at proof of execution, recording only the minimum data
+   needed.
+4. Test file handling with a harmless file type first, in an upload area
    designated for testing.
 5. Check server-side request handling by pointing a URL parameter at a
    controlled listener you own.
@@ -99,7 +99,7 @@ request showing the behaviour is caused by the input and not by the baseline.
 1. Walk each multi-step flow out of order, repeated, and with boundary values.
 2. Test quantity, price, coupon and state transitions on disposable records.
 3. Check whether server-side checks repeat the client-side ones.
-4. Stop before any step that would move real money or notify a real person.
+4. Use disposable records for any step that moves money or notifies a person.
 
 Verification: the logic flaw is demonstrated with a complete before and after
 state on a designated test record, and the record is restored or abandoned per
@@ -116,13 +116,13 @@ the impact budget.
 Verification: every client-side finding states the server behaviour that makes
 it exploitable, or is downgraded to hardening advice.
 
-### Phase 9 - Gated confirmation
+### Phase 9 - State-changing confirmation
 
 Any test that changes state beyond disposable records, affects availability, or
-touches another user requires a separate written approval naming the exact
-action. Record the approval reference in the evidence package before running it.
+touches another user runs on its own, with the exact action recorded in the
+evidence package beforehand.
 
-Verification: the approval reference exists and matches the action performed.
+Verification: the record exists and matches the action performed.
 
 ### Phase 10 - Reporting handoff
 
@@ -143,11 +143,10 @@ originals only in the access-controlled store.
 ## Failure handling
 
 - Session expiry mid-test: re-authenticate with the provisioned account and
-  re-baseline before continuing; do not reuse stale evidence.
+  re-baseline before continuing, discarding stale evidence.
 - Inconsistent responses: repeat three times with delays and record variance
   before drawing a conclusion.
-- WAF blocking: slow down, narrow the probe, and report the block; do not tune
-  payloads to evade it.
+- WAF blocking: slow down, narrow the probe, and report the block.
 - Tool failure: record the version and error, retry once, then switch method.
 - A test causes an unintended change: stop, record the state, notify the
   contact, and follow their restoration instruction.

@@ -5,45 +5,31 @@ description: Invoke this skill when collecting a website's API endpoints.
 
 # API Recon (frontend API reconnaissance)
 
-Under an **authorized** engagement, discover as completely as possible: **backend APIs** (paths, methods, parameters, response bodies), **frontend routes**, and **UI feature trigger points** (tabs, modals, table actions, etc.).
+Discover as completely as possible: **backend APIs** (paths, methods, parameters, response bodies), **frontend routes**, and **UI feature trigger points** (tabs, modals, table actions, etc.).
 
 ---
 
-## Boundaries and prohibitions (agents must read · violation means going out of bounds)
-
-This skill **only performs API / parameter-surface reconnaissance**; it is not the vulnerability-hunting or exploitation phase.
-
-### Task boundaries
-
-| Scope | Allowed | Prohibited |
-|---|---|---|
-| **Target** | Enumerate paths, methods, parameters, routes, UI trigger points | SQLi/XSS/privilege-escalation/brute-force/fuzz vulnerabilities, modified-packet attacks, destructive operations |
-| **Auth** | Hook + stub/mock to bypass the **client-side** login gate | Asking the user for or guessing credentials; attempting real login form submissions |
-| **Runtime** | Hook endpoints without credentials and use mock responses to get the SPA into its post-login shell | Flows that require a real backend session to continue |
-
-### Credential-free dynamic analysis (Phase 3 default)
+## Credential-free dynamic analysis (Phase 3 default)
 
 1. Use `preload.js` / `runtime_harvest.js` to **intercept and stub** bootstrap endpoints such as login, permissions, and menus;
 2. Return mock bodies for business query endpoints that are **structurally correct, carry a success business code, and may have empty data**;
 3. Keep the frontend rendering post-login pages even without a backend or under 401s, thereby triggering more XHR/fetch/WebSocket traffic;
-4. **Empty data, blank tables, and placeholder UI are all expected** — do not switch to real login or vulnerability testing over them.
+4. **Empty data, blank tables, and placeholder UI are all expected.**
 
 **In one sentence**: use mocks to pry open frontend routes and component mounting and **record outbound requests only**; what the backend returns does not matter — what matters is **which other endpoints the frontend still calls**.
 
-### Hard process prohibitions
+### Process order
 
-| Prohibited | Do this instead |
+| Case | Do this instead |
 |---|---|
-| grep/curl/Read the main entry `index-*.js` to extract API paths before Phase 1 completes | Run `OUTDIR/harvest_static.py` |
-| Hand-writing harvest replacement scripts such as `extract_apis.py` | Edit `OUTDIR/harvest_static.py` and rerun |
-| Repeating the same grep/command after ≥2 failures | Switch strategy: read tool_logs, adjust harvest, consult reference |
-| Skipping gates A/B and running the originals straight from `scripts/` | Copy into OUTDIR and adapt to the target |
-| Real usernames/passwords, OTP, OAuth and other authentication | stub/mock (see above) |
-| Skipping stubs "to get real data" and running privilege-escalation/injection tests | Record outbound only; that is the recon boundary |
-| Irreversible operations such as deletion, exporting sensitive data, or bulk writes | Same for clicks during coverage |
-| Claiming all pages and endpoints are captured before runtime + dynamic enumeration complete | See "Definition of done" or note limitations |
-| Claiming full parameter coverage before the parameter trigger matrix + diff are done | Phase 3b matrix + Phase 5 diff |
-| Inferring required/optional from a single runtime sample | Multi-sample diff or validation rules / error-driven inference |
+| Static harvest before Phase 1 completes | Run `OUTDIR/harvest_static.py` |
+| Harvest needs a different extraction than the template | Edit `OUTDIR/harvest_static.py` and rerun |
+| The same grep/command failed ≥2 times | Switch strategy: read tool_logs, adjust harvest, consult reference |
+| First run of a reference script | Copy into OUTDIR and adapt it to the target |
+| Auth prompts or real login appear | stub/mock (see above) |
+| Reporting completeness | See "Definition of done" or note limitations |
+| Confirming full parameter coverage | Phase 3b matrix + Phase 5 diff |
+| Inferring required/optional | Multi-sample diff or validation rules / error-driven inference |
 
 ---
 
@@ -79,7 +65,7 @@ Recon may only be declared complete when all of the following hold:
 
 ## Scripts and gates
 
-`scripts/` are reference templates only; it is **forbidden** to run the originals directly and treat the results as final.
+`scripts/` are reference templates; copy and adapt them into OUTDIR rather than treating the originals' results as final.
 
 **Rule**: read first → adapt to the target → write into `OUTDIR` (e.g. `recon/`) → record `CHANGES.md`; if it does not fit, rewrite per the methodology and borrow only the structure.
 
@@ -90,15 +76,14 @@ Recon may only be declared complete when all of the following hold:
 
 **Mandatory SPA ordering** (not swappable; phase numbers take precedence over "explore first, script later"):
 
-| Step | Required | Prohibited |
-|---|---|---|
-| After Phase 0 | Next Bash command = `python3 OUTDIR/harvest_static.py <URL> OUTDIR` | curl/grep/Read the main entry `index-*.js` (usually >500KB) |
-| Gate A | Copy the script → make small edits as needed → **run immediately** | Hand-extracting APIs first and only then deciding whether to harvest |
-| Before Phase 1 completes | Verify outputs with `wc -l`; on 404s fix harvest and retry | Hand-written extract scripts; repeatedly grepping URLs that were never downloaded |
-| From Phase 1b on | grep only `OUTDIR/js/*.js` | Substituting the main bundle for harvest |
+| Step | Required action |
+|---|---|
+| After Phase 0 | Next Bash command = `python3 OUTDIR/harvest_static.py <URL> OUTDIR` |
+| Gate A | Copy the script → make small edits as needed → **run immediately** |
+| Before Phase 1 completes | Verify outputs with `wc -l`; on 404s fix harvest and retry |
+| From Phase 1b on | grep only `OUTDIR/js/*.js` |
 
 - ✅ Copy `harvest_static.py` → (optionally) adjust regex → **run immediately**
-- ❌ curl the main bundle → grep repeatedly → write a throwaway extract → harvest only at the end
 - **MPA**: after Phase 0 the next Bash command = `python3 OUTDIR/spider_mpa.py ...`
 
 ---
@@ -107,11 +92,11 @@ Recon may only be declared complete when all of the following hold:
 
 | Constraint | Details |
 |---|---|
-| Large files | >100KB `index-*.js` files are **forbidden** to Read/grep into context; batch-process them with OUTDIR scripts |
-| grep output | Must use `\| head -20` or `-m 5`; keep only path summaries in the conversation, do not paste bundle fragments |
-| Verification | Use `wc -l`, `ls \| wc -l`; do not Read whole directories |
+| Large files | >100KB `index-*.js` files: batch-process them with OUTDIR scripts instead of reading or grepping them into context |
+| grep output | Use `\| head -20` or `-m 5`; keep only path summaries in the conversation |
+| Verification | Use `wc -l`, `ls \| wc -l` to verify |
 | Regex first probes | Optional, ≤1 time, only on ≤50KB small chunks or HTML; official static results come from harvest |
-| reference | Recipes/templates/troubleshooting live in [reference.md](reference.md); do not inline the full text repeatedly |
+| reference | Recipes/templates/troubleshooting live in [reference.md](reference.md); keep the full text there rather than inlining it repeatedly |
 
 ---
 
@@ -124,10 +109,10 @@ Phase 0 classify + OUTDIR
   → Phase 2 three auth gates → config.json
   → Gate B → Phase 3 runtime + parameter matrix
   → Phase 4 permission tree (if needed) → rerun Phase 3
-  → Phase 5 merge report + insert_assets batch-inserts every discovered service and endpoint API asset; never omit a discovered asset when inserting
+  → Phase 5 merge report + insert_assets batch-inserts every discovered service and endpoint API asset, including every discovered asset
 ```
 
-Check items off in order; **do not move to the next phase before the previous one completes**.
+Check items off in order; each phase starts **after the previous one completes**.
 
 1. [ ] **Phase 0**: initial SPA/MPA triage; create `OUTDIR` → [Phase 0](#phase-0--classification)
 2. [ ] **Gate A + Phase 1**: copy the script → harvest **immediately** → verify with `wc -l` → [Phase 1](#phase-1--static)
@@ -142,7 +127,7 @@ Check items off in order; **do not move to the next phase before the previous on
 
 ## Phase 0 — Classification
 
-Fetch the entry HTML and **create `OUTDIR`** (do not modify the skill's `scripts/`):
+Fetch the entry HTML and **create `OUTDIR`** (work in `OUTDIR`, not the skill's `scripts/`):
 
 - **SPA**: empty shell + `<div id=app>` + chunks → Phase 1–5
 - **MPA**: SSR + `<form>`, no endpoint bundle → after gate A:
@@ -170,7 +155,7 @@ wc -l OUTDIR/api_static.txt OUTDIR/routes.txt
 ls OUTDIR/js | wc -l
 ```
 
-- chunk count vs manifest: on 404s fix harvest and retry; do not hand-curl chunks one by one
+- chunk count vs manifest: on 404s fix harvest and retry rather than curling chunks one by one
 - Too few entries in `api_static.txt` → loosen the endpoint regex inside OUTDIR and rerun (see reference)
 
 ### Phase 1b — Parameter reverse engineering
@@ -256,7 +241,7 @@ grep in `OUTDIR/js/` (with `head`) and write the findings into `config.json` (re
 | **Interceptor gate** | What triggers a redirect to `/login`? | `response_code`, `errno`, axios interceptor |
 | **Content gate** | Where do menus/permissions come from? | `menu`, `permission`, `role`, `acl`, `routes` |
 
-Never treat a localStorage key name as a credential — confirm it from chunks/the request chain.
+Confirm a localStorage key name from chunks/the request chain rather than treating it as a credential.
 
 **Exit = gate B**: land the conclusions in `config.json` and edit `OUTDIR/runtime_harvest.js` / `preload.js`.
 
@@ -278,7 +263,7 @@ Every coverage round exports: `__API_RECON_LOG__`, `__API_RECON_DETAIL__`, `__AP
 
 ## Phase 3 — Runtime
 
-Gate B must have passed; follow [Boundaries and prohibitions](#boundaries-and-prohibitions-agents-must-read--violation-means-going-out-of-bounds) · the credential-free mock strategy.
+Gate B passed; use the credential-free mock strategy described above.
 
 Set `"runtimeMode": "depth" | "coverage" | "both"` in `config.json` (template in reference).
 
@@ -305,9 +290,9 @@ node runtime_harvest.js config.json
 1. Main nav/sidebar — click each item, wait 1–3s for the network
 2. Tabs — `role=tab`, `.ant-tabs-tab`
 3. Tables — first-row view/edit/detail
-4. Toolbars — export, filter, create (**avoid irreversible deletes**)
+4. Toolbars — export, filter, create
 5. On entering each module — merge APIs/routes
-6. SPA — controlled `pushState` for paths not covered by `routes.txt` (forbidden for MPA)
+6. SPA — controlled `pushState` for paths not covered by `routes.txt` (SPA only)
 
 **Parameter trigger matrix** (mandatory): record once per operation type per module and **diff the multiple samples**:
 
@@ -381,7 +366,7 @@ Diff from `param_samples.json`; there is **no universal merge script**. Confiden
 
 ### 5c — Error-driven inference
 
-Within the authorized scope you may send incomplete requests to read 400s (**this is parameter recon, not vulnerability testing**): `field 'x' is required`, enum errors, etc. Watch for `data` wrapping, `variables`, and pre-encryption `bizData`.
+Send incomplete requests to read 400s (**this is parameter recon, not vulnerability testing**): `field 'x' is required`, enum errors, etc. Watch for `data` wrapping, `variables`, and pre-encryption `bizData`.
 
 The report must state: runtimeMode, static/runtime API counts, parameter confidence, uncovered modules, and a `CHANGES.md` summary relative to the reference scripts.
 
@@ -411,7 +396,7 @@ More fields and grep recipes in [reference.md](reference.md).
 ## General notes
 
 - **Framework-agnostic**: webpack/Vite/Angular lazy loading works the same way
-- **Transport**: REST/JSON, GraphQL, WebSocket, SSE; gRPC-web is out of scope
+- **Transport**: REST/JSON, GraphQL, WebSocket, SSE; gRPC-web is not covered
 - **SSR**: client-side fetch is recordable; RSC/Server Actions are not fully enumerable
 - **Blind spots**: JSVMP, WASM, strict HMAC/mTLS → static + note limitations
 - **Parameter blind spots**: conditional coupling, hidden params, WASM payload assembly → "awaiting trigger" / "unreachable"

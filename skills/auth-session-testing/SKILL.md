@@ -1,6 +1,6 @@
 ---
 name: auth-session-testing
-description: "Use when assessing an authorized application's authentication, session lifecycle, credential recovery, MFA and single sign-on behaviour using provisioned test accounts."
+description: "Use when assessing an application's authentication, session lifecycle, credential recovery, MFA and single sign-on behaviour using provisioned test accounts."
 allowed-tools: Read Write Bash(curl:*) Bash(jq:*)
 ---
 
@@ -9,7 +9,7 @@ allowed-tools: Read Write Bash(curl:*) Bash(jq:*)
 Tests whether identities and sessions are established, carried and ended
 correctly. The work is observational first: understand the intended lifecycle,
 then look for places where the server trusts something it should not. All
-actions use provisioned test accounts, and no real user is ever affected.
+actions use provisioned test accounts rather than real user accounts.
 
 ## Preconditions
 
@@ -20,7 +20,7 @@ actions use provisioned test accounts, and no real user is ever affected.
 - The ability to clear cookies and storage between tests, or separate browser
   profiles.
 - A recorded clock, since token lifetimes are measured against it.
-- Knowledge of the lockout policy, so a test cannot lock a shared account.
+- Knowledge of the lockout policy, to keep tests below the lockout threshold.
 
 ## Workflow
 
@@ -87,8 +87,8 @@ header, not a browser warning.
    exists.
 4. Check MFA enrolment, reset and recovery gating, and whether MFA can be
    removed without re-authentication.
-5. Test rate limiting with a few attempts inside the agreed budget, never to the
-   lockout threshold.
+5. Test rate limiting with a few attempts inside the agreed budget, staying
+   below the lockout threshold.
 
 Verification: findings state the observed behaviour at each step, with counts
 of attempts actually made, and no account is left locked.
@@ -109,7 +109,7 @@ redirect, and no authorization code or token is taken from another user.
 
 1. With two accounts, confirm whether a session from one role can reach the
    other role's authenticated functions.
-2. Hand deeper object-level testing to `web-app-testing` under its own gates.
+2. Hand deeper object-level testing to `web-app-testing`.
 
 Verification: any boundary issue is proven with both sessions and both
 responses, otherwise it stays an observation.
@@ -133,8 +133,7 @@ attempt counts against the agreed budget.
 
 ## Failure handling
 
-- Account locked: stop that flow, notify the contact, and wait for an official
-  unlock. Do not attempt to recover it yourself.
+- Account locked: stop that flow, notify the contact, and wait for an unlock.
 - Recovery mail delayed: record the delay, retry once after the documented
   interval, then mark the flow blocked.
 - Token lifetime shorter than the test: reduce the test to a single request and

@@ -5,13 +5,13 @@ description: "Invoke this skill when the task is a white-box audit of source cod
 
 # Code Audit (white-box source review)
 
-Under an **authorized** engagement, audit first-party production source code the way an attacker reads it: enumerate every user-controllable input, trace each one forward to dangerous sinks, keep only findings that pass the gates, and prove each one with a PoC and a measured impact. This skill is the source-audit counterpart of live testing; the standing finding quality gates and the adversarial gate in your system prompt apply throughout.
+Audit first-party production source code the way an attacker reads it: enumerate every user-controllable input, trace each one forward to dangerous sinks, keep only findings that pass the gates, and prove each one with a PoC and a measured impact. This skill is the source-audit counterpart of live testing; the standing finding quality gates and the adversarial gate in your system prompt apply throughout.
 
-## Scope rules (production code only)
+## Production code focus
 
-Never report findings in, and never trace through: test code, build and packaging scripts, vendored or third-party code, generated code, documentation. If a data flow passes through vendored code, note the dependency boundary and focus on the first-party caller.
+Audit production application source: test code, build and packaging scripts, vendored or third-party code, generated code, and documentation are outside the audit surface. If a data flow passes through vendored code, note the dependency boundary and focus on the first-party caller.
 
-**Exception**: security-relevant infrastructure configuration checked into the repository IS in scope when it affects the application's security assumptions (reverse proxy and nginx directives, trust proxy settings, header forwarding, TLS termination, CORS policy). A directive that promotes a normally trusted value to attacker-controllable is a deployed vulnerability, not an operational note.
+**Exception**: security-relevant infrastructure configuration checked into the repository is part of the audit surface when it affects the application's security assumptions (reverse proxy and nginx directives, trust proxy settings, header forwarding, TLS termination, CORS policy). A directive that promotes a normally trusted value to attacker-controllable is a deployed vulnerability, not an operational note.
 
 ## Phase 1: input inventory and partitioning
 
@@ -27,9 +27,9 @@ For each input, trace **forward** (entry point to sink), one vuln class at a tim
 
 1. Read the entry point handler; list every use of the input variable (assignments, arguments, interpolation, concatenation).
 2. Trace forward function by function until a sink, a sanitizer, or the codebase boundary.
-   - **Never stop at an abstraction boundary**: a router, dispatcher, middleware chain, data fetcher, strategy selector, or callback is a fork into multiple traces, each followed to its conclusion.
+   - **Trace through every abstraction boundary**: a router, dispatcher, middleware chain, data fetcher, strategy selector, or callback is a fork into multiple traces, each followed to its conclusion.
    - **Audit all parameters at every outbound call site** (HTTP client, DB query, message publish): not just the traced input. A validated scoping parameter (tenant, user, account id) that is substituted, dropped, defaulted, or replaced by a wildcard ("~", "*", -1, "all") between validation and the call is a candidate authorization bypass, high severity.
-   - **Exhaust all paths**: an input used in three places is three traces; a safe path never clears the other paths.
+   - **Exhaust all paths**: an input used in three places is three traces; a safe path does not clear the other paths.
    - **Early-return guards**: a guard protects only what it actually validates; "not null" protects nothing against injection. Verify the check matches the sink context.
    - **Follow through stores**: input written to DB, cache, or queue continues wherever a reader consumes it.
    - **Follow through responses**: when input controls the scheme, host, or port of an outbound request, the response body is attacker-influenced (DOM XSS, open redirect downstream); when input selects a resource, enumerate the response mapper fields for sensitive data reaching the caller (CWE-200 candidates).
@@ -48,7 +48,7 @@ A candidate failing any gate is a hardening note, never a finding. Comment and n
 
 - Search the **whole** codebase for shared defenses the partition hunt could not see, and verify each defense actually blocks the attack by reading it.
 - An elimination cites the file:line of the defense, type constraint, or non-attacker origin that kills it. No citation, no elimination.
-- Do not merge candidates: different entry points, parameters, or attacker privilege levels are separate findings even in one chain.
+- Keep candidates separate: different entry points, parameters, or attacker privilege levels are separate findings even in one chain.
 - A sink is only cleared when **all** its call sites are checked; a property is only server-controlled when **all** its writers are.
 
 ## PoC and measured impact

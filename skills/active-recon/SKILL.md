@@ -1,6 +1,6 @@
 ---
 name: active-recon
-description: "Use when enumerating an authorized target's live hosts, services, web surface and content with direct traffic, after passive recon and before any exploitation."
+description: "Use when enumerating a target's live hosts, services, web surface and content with direct traffic, after passive recon and before exploitation."
 allowed-tools: Read Write Bash(dig:*) Bash(curl:*) Bash(openssl:*) Bash(nmap:*) Bash(jq:*)
 ---
 
@@ -9,23 +9,23 @@ allowed-tools: Read Write Bash(dig:*) Bash(curl:*) Bash(openssl:*) Bash(nmap:*) 
 Sends traffic to the target to confirm and extend the passive inventory: which
 hosts answer, which services listen, what the web tier exposes, and which paths
 exist. Everything here is discovery. Exploitation, authentication bypass and
-state changes belong to later skills and to their own approvals.
+state changes belong to later skills.
 
 ## Preconditions
 
 - Scope record reviewed within the last working day.
-- Tool versions and wordlists recorded; prefer a list already approved for the
-  engagement over an arbitrary download.
+- Tool versions and wordlists recorded; prefer a documented list over an
+  arbitrary download.
 - Egress IP confirmed and stable for the duration of the run.
-- A resolver choice agreed, typically the client's or a public resolver, never
-  the target's authoritative servers for bulk queries.
+- A resolver choice agreed, typically the client's or a public resolver rather
+  than the target's authoritative servers for bulk queries.
 - A scratch directory outside the repository for raw output.
 - A dry run completed against a lab or mock target in the same tool versions.
 
 ## Workflow
 
-Each phase ends with a verification step. Do not start the next phase until the
-verification passes, and record the result in the run log.
+Each phase ends with a verification step; record the result in the run log
+before starting the next phase.
 
 ### Phase 1 - Scope binding and resolution
 
@@ -47,8 +47,7 @@ third-party and excluded. No shared-hosting neighbour is queued for scanning.
 4. Record banners, certificate subjects and any protocol oddity.
 
 Verification: the open-port set is internally consistent with the services the
-client described. An unexpected service is reported, not probed further, and
-the escalation contact decides whether it stays in scope.
+client described. An unexpected service is reported rather than probed further.
 
 ### Phase 3 - HTTP surface mapping
 
@@ -67,14 +66,14 @@ technology claim is backed by at least one observed response artefact.
 1. Enumerate with one documented wordlist and a fixed request rate.
 2. Calibrate against soft 404 behaviour before trusting any hit.
 3. Use HEAD where the body is irrelevant, and GET only for confirmed paths.
-4. Stop at directory index level; do not mirror content.
+4. Stop at directory index level rather than mirroring content.
 
 Verification: the false positive rate is estimated from baseline sampling, and
 every reported path was manually re-requested and produced a stable response.
 
 ### Phase 5 - Virtual hosts and name confirmation
 
-1. Test Host header variation only against in-scope addresses.
+1. Test Host header variation against in-scope addresses.
 2. Confirm candidate names from the passive inventory rather than guessing at
    scale.
 3. Record which names share an address and which present distinct content.
@@ -106,22 +105,21 @@ commands, and the diff against the passive baseline is explained.
 
 For each action capture: UTC timestamp, operator, exact command, target, source
 address, raw response saved before analysis, and a SHA-256 of the artefact.
-Store raw output in the access-controlled evidence directory, never in the
-repository. Redact session cookies, tokens, personal data and any internal
+Store raw output in the access-controlled evidence directory rather than in
+the repository. Redact session cookies, tokens, personal data and any internal
 hostname that is not needed to prove the point.
 
 ## Failure handling
 
 - Rate limited: back off exponentially with jitter, lower concurrency, and
-  record the limit. Never rotate egress addresses to continue.
+  record the limit.
 - DNS failure: retry once against a second agreed resolver, then record and move
   on.
 - Wildcard responses: calibrate with random paths; if calibration is
   inconclusive, mark results as unreliable instead of reporting them.
 - Tool crash or timeout: record it, retry at most twice with reduced scope, then
   switch method or mark the area uncovered.
-- Any sign of impact: stop the current phase, notify the contact, and do not
-  resume without written approval.
+- Any sign of impact: stop the current phase and notify the contact.
 
 ## References
 

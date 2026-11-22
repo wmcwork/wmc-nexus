@@ -22,10 +22,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ApprovalExecutionFocus, useApprovalFocus, useApprovalHistory } from "@/components/approval-execution-focus";
 import { MentionTextarea } from "@/components/mention-textarea";
 import { SideQuestionButton, SideQuestionWorkspace } from "@/components/side-question-workspace";
 import { TodoPopover } from "@/components/todo-popover";
-import { ApprovalExecutionFocus, useApprovalFocus, useApprovalHistory } from "@/components/approval-execution-focus";
 import { Transcript } from "@/components/transcript";
 import {
   AlertDialog,
@@ -57,6 +57,7 @@ import { mergeActivities } from "@/lib/activity-merge";
 import { api } from "@/lib/api";
 import { shouldSubmitOnKey, useChatSendMode } from "@/lib/chat-send-mode";
 import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
+import { useLocale } from "@/lib/locale";
 import { isBtwCommand } from "@/lib/side-questions";
 import type { Activity, Agent, ChatAttachment, Conversation, LLMProfile } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -134,10 +135,11 @@ function groupByAgent(conversations: Conversation[], agentByKey: Map<string, Age
 // LiveBadge is the small pulsing "live" chip reused from the task's main-agent
 // console — shown while a turn is streaming.
 function LiveBadge() {
+  const { t } = useLocale();
   return (
     <span className="inline-flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
       <span className="size-1 animate-pulse rounded-full bg-blue-500" />
-      Live
+      {t("taskTabSessionsLive")}
     </span>
   );
 }
@@ -176,6 +178,7 @@ function Composer({
   uploading?: boolean;
   allowBtw?: boolean;
 }) {
+  const { t } = useLocale();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const atts = attachments ?? [];
   // The send key binding comes from system settings (localStorage); Enter sends by default.
@@ -203,7 +206,7 @@ function Composer({
                   type="button"
                   className="ml-0.5 text-muted-foreground hover:text-foreground"
                   onClick={() => onRemoveAttachment(a.path)}
-                  title="Remove"
+                  title={t("taskTabSessionsRemoveAttachment")}
                 >
                   <XIcon className="size-3" />
                 </button>
@@ -234,7 +237,7 @@ function Composer({
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || uploading}
-              title="Upload files"
+              title={t("uploadFiles")}
             >
               {uploading ? <Loader2Icon className="size-4 animate-spin" /> : <PaperclipIcon className="size-4" />}
             </Button>
@@ -250,14 +253,19 @@ function Composer({
           onKeyDown={onKeyDown}
         />
         {running && allowBtw && isBtwCommand(value) && (
-          <Button size="icon" onClick={onSend} aria-label="Send side question" title="Send side question">
+          <Button
+            size="icon"
+            onClick={onSend}
+            aria-label={t("taskTabSessionsSendSideQuestion")}
+            title={t("taskTabSessionsSendSideQuestion")}
+          >
             <ArrowUpIcon />
           </Button>
         )}
         {running ? (
           // while a run is in flight the send button becomes a stop button —
           // aborts just this session (the trigger queue keeps going).
-          <Button size="icon" variant="destructive" onClick={onStop} disabled={stopDisabled} title="Stop this run">
+          <Button size="icon" variant="destructive" onClick={onStop} disabled={stopDisabled} title={t("chatUiStopRun")}>
             <Square className="size-3.5 fill-current" />
           </Button>
         ) : (
@@ -265,8 +273,8 @@ function Composer({
             size="icon"
             onClick={onSend}
             disabled={disabled || (!value.trim() && atts.length === 0)}
-            title="Send message"
-            aria-label="Send message"
+            title={t("taskTabSessionsSendMessage")}
+            aria-label={t("taskTabSessionsSendMessage")}
           >
             <ArrowUpIcon />
           </Button>
@@ -291,10 +299,11 @@ function LLMProfileRow({
   disabled?: boolean;
   rightSlot?: React.ReactNode;
 }) {
+  const { t } = useLocale();
   const [open, setOpen] = React.useState(false);
   const activeDefault = profiles.find((p) => p.is_default);
   const current = selected != null ? profiles.find((p) => Number(p.id) === selected) : null;
-  const label = current ? current.name : `Default${activeDefault ? ` (${activeDefault.name})` : ""}`;
+  const label = current ? current.name : `${t("chatUiDefault")}${activeDefault ? ` (${activeDefault.name})` : ""}`;
 
   return (
     <div className="flex min-w-0 shrink-0 items-center gap-1 px-1 pt-0.5 pb-1">
@@ -309,12 +318,12 @@ function LLMProfileRow({
             disabled={disabled}
             className="flex shrink-0 items-center gap-0.5 text-primary text-xs hover:underline disabled:pointer-events-none disabled:opacity-40"
           >
-            Change
+            {t("chatUiChange")}
             <ChevronDownIcon className="size-3" />
           </button>
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-1">
-          <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">Select an LLM profile</p>
+          <p className="text-muted-foreground px-2 py-1 text-[11px] font-medium">{t("chatUiSelectLlmProfile")}</p>
           {/* default option */}
           <button
             type="button"
@@ -327,7 +336,10 @@ function LLMProfileRow({
               selected == null && "bg-accent",
             )}
           >
-            <span className="text-sm">Default{activeDefault ? ` (${activeDefault.name})` : ""}</span>
+            <span className="text-sm">
+              {t("chatUiDefault")}
+              {activeDefault ? ` (${activeDefault.name})` : ""}
+            </span>
             {activeDefault && (
               <span className="text-muted-foreground text-[11px]">
                 {activeDefault.format} · {activeDefault.model}
@@ -373,6 +385,7 @@ function DraftChat({
   profiles: LLMProfile[];
   onStarted: (c: Conversation, pending?: { input?: string; attachments?: ChatAttachment[] }) => void;
 }) {
+  const { t } = useLocale();
   const [agentKey, setAgentKey] = React.useState("");
   const [llmProfileId, setLlmProfileId] = React.useState<number | null>(null);
   const [input, setInput] = React.useState("");
@@ -395,7 +408,7 @@ function DraftChat({
       await api.sendConversationMessage(c.id, msg);
       onStarted(c);
     } catch (e) {
-      toast.error("Send failed: " + (e as Error).message);
+      toast.error(`${t("taskTabSessionsSendFailed")}: ${(e as Error).message}`);
       setSending(false);
     }
   }
@@ -413,7 +426,7 @@ function DraftChat({
       const r = await api.chatUpload("session", `conv-${c.id}`, files);
       onStarted(c, { input, attachments: r.attachments });
     } catch (e) {
-      toast.error("Upload failed: " + (e as Error).message);
+      toast.error(`${t("uploadFailed")}: ${(e as Error).message}`);
       setUploading(false);
     }
   }
@@ -421,7 +434,7 @@ function DraftChat({
   const agentPicker = (
     <Select value={agentKey} onValueChange={setAgentKey}>
       <SelectTrigger className="w-full sm:w-40">
-        <SelectValue placeholder="Select an agent…" />
+        <SelectValue placeholder={t("chatUiSelectAgent")} />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
@@ -432,7 +445,7 @@ function DraftChat({
                 {a.name}
                 {!a.builtin && (
                   <Badge variant="outline" className="px-1 py-0 text-[9px]">
-                    Custom
+                    {t("agentUiCustom")}
                   </Badge>
                 )}
               </span>
@@ -450,7 +463,9 @@ function DraftChat({
         <div className="bg-primary/10 flex size-12 items-center justify-center rounded-full">
           <Bot className="text-primary size-6" />
         </div>
-        <div className="text-sm font-medium">Start a conversation with "{agent?.name ?? "Agent"}"</div>
+        <div className="text-sm font-medium">
+          {t("chatUiStartConversationWith")} "{agent?.name ?? t("chatUiAgentFallback")}"
+        </div>
         {agent?.description && <p className="text-muted-foreground max-w-md text-xs">{agent.description}</p>}
       </div>
 
@@ -459,7 +474,7 @@ function DraftChat({
         onChange={setInput}
         onSend={send}
         disabled={sending || uploading || !agentKey}
-        placeholder="Type a message, @ to reference records, Enter to send"
+        placeholder={t("chatUiComposerPlaceholder")}
         leftSlot={agentPicker}
         onPickFiles={pickFiles}
         uploading={uploading}
@@ -494,6 +509,7 @@ function ChatView({
   onTitleMaybeChanged: () => void;
   onConvUpdated: () => void;
 }) {
+  const { t } = useLocale();
   const approvalFocus = useApprovalFocus({ conversationId: conv.id });
   const [messages, setMessages] = React.useState<Activity[]>([]);
   const [running, setRunning] = React.useState(false);
@@ -518,7 +534,7 @@ function ChatView({
       await api.updateConversationProfile(conv.id, id);
       onConvUpdated();
     } catch (e) {
-      toast.error("Failed to switch LLM: " + (e as Error).message);
+      toast.error(`${t("chatUiSwitchLlmFailed")}: ${(e as Error).message}`);
     }
   }
 
@@ -607,14 +623,23 @@ function ChatView({
     };
   }, [running, conv.id, onTitleMaybeChanged]);
 
-  const loadFocusPage = React.useCallback((before: number) => api.conversationHistory(conv.id, before, HISTORY_PAGE), [conv.id]);
+  const loadFocusPage = React.useCallback(
+    (before: number) => api.conversationHistory(conv.id, before, HISTORY_PAGE),
+    [conv.id],
+  );
   const mergeFocusPage = React.useCallback((page: { items: Activity[]; hasMore: boolean }) => {
     setMessages((prev) => mergeActivities(page.items, prev));
     earliestRef.current = page.items[0]?.seq ?? earliestRef.current;
     hasMoreRef.current = page.hasMore;
     setHasMore(page.hasMore);
   }, []);
-  const focusHistory = useApprovalHistory(approvalFocus.state?.source, historyLoaded, messages, loadFocusPage, mergeFocusPage);
+  const focusHistory = useApprovalHistory(
+    approvalFocus.state?.source,
+    historyLoaded,
+    messages,
+    loadFocusPage,
+    mergeFocusPage,
+  );
 
   // ---- transcript auto-scroll (open → bottom; stick to bottom unless scrolled up) ----
   const contentRef = React.useRef<HTMLDivElement | null>(null);
@@ -716,7 +741,7 @@ function ChatView({
       const r = await api.chatUpload("session", `conv-${conv.id}`, files);
       setAttachments((prev) => [...prev, ...r.attachments]);
     } catch (e) {
-      toast.error("Upload failed: " + (e as Error).message);
+      toast.error(`${t("uploadFailed")}: ${(e as Error).message}`);
     } finally {
       setUploading(false);
     }
@@ -736,7 +761,7 @@ function ChatView({
       // fetch avoids racing a separate post-send request against the poller.
       setRunning(true);
     } catch (e) {
-      toast.error("Send failed: " + (e as Error).message);
+      toast.error(`${t("taskTabSessionsSendFailed")}: ${(e as Error).message}`);
       setInput(msg); // restore so the user doesn't lose their text
       setAttachments(atts); // and their attachments
     } finally {
@@ -753,7 +778,7 @@ function ChatView({
     try {
       await api.stopConversation(conv.id);
     } catch (e) {
-      toast.error("Stop failed: " + (e as Error).message);
+      toast.error(`${t("chatUiStopFailed")}: ${(e as Error).message}`);
     } finally {
       setStopping(false);
     }
@@ -768,7 +793,7 @@ function ChatView({
         <span className="text-muted-foreground hidden shrink-0 font-mono text-xs sm:inline">{conv.agent_key}</span>
         {agent && !agent.builtin && (
           <Badge variant="outline" className="shrink-0 px-1.5 py-0 text-[10px]">
-            Custom
+            {t("agentUiCustom")}
           </Badge>
         )}
         {agent?.description && (
@@ -778,13 +803,14 @@ function ChatView({
         <SideQuestionButton side={side} />
         <div className="text-muted-foreground ml-auto flex min-w-0 max-w-full items-center justify-end gap-x-3 gap-y-1 text-xs max-sm:w-full max-sm:flex-wrap">
           {tokenTotal.turns > 0 && (
-            <span title="Agent loop turns (model calls)" className="tabular-nums">
-              {tokenTotal.turns} turns
+            <span title={t("chatUiTurnsTitle")} className="tabular-nums">
+              {tokenTotal.turns} {t("chatUiTurns")}
             </span>
           )}
           {tokenTotal.any && (
-            <span title="input / cache(read) / output tokens" className="min-w-0 truncate tabular-nums">
-              input {fmtTokens(tokenTotal.i)} · cache {fmtTokens(tokenTotal.cr)} · output {fmtTokens(tokenTotal.o)}
+            <span title={t("chatUiTokenBreakdownTitle")} className="min-w-0 truncate tabular-nums">
+              {t("chatUiTokenInput")} {fmtTokens(tokenTotal.i)} · {t("chatUiTokenCache")} {fmtTokens(tokenTotal.cr)} ·{" "}
+              {t("chatUiTokenOutput")} {fmtTokens(tokenTotal.o)}
             </span>
           )}
         </div>
@@ -797,14 +823,22 @@ function ChatView({
         <div className="min-w-0 max-w-full px-4 py-3" ref={contentRef}>
           {messages.length === 0 && !running ? (
             <div className="text-muted-foreground py-10 text-center text-sm">
-              Start a conversation with "{agent?.name ?? conv.agent_key}"
+              {t("chatUiStartConversationWith")} "{agent?.name ?? conv.agent_key}"
             </div>
           ) : (
             <>
               {hasMore && (
-                <div className="text-muted-foreground/70 pb-2 text-center text-[11px]">Scroll up to load earlier messages…</div>
+                <div className="text-muted-foreground/70 pb-2 text-center text-[11px]">
+                  {t("chatUiScrollUpEarlier")}
+                </div>
               )}
-              <Transcript activity={messages} live={running} chat fetchDetail={fetchDetail} focusedSeq={focusHistory.ready ? approvalFocus.state?.source?.seq : undefined} />
+              <Transcript
+                activity={messages}
+                live={running}
+                chat
+                fetchDetail={fetchDetail}
+                focusedSeq={focusHistory.ready ? approvalFocus.state?.source?.seq : undefined}
+              />
             </>
           )}
         </div>
@@ -816,7 +850,7 @@ function ChatView({
         onSend={send}
         disabled={running || sending}
         allowBtw
-        placeholder={running ? "Agent is replying; type /btw to ask a side question…" : "Type a message, @ to reference records, Enter to send"}
+        placeholder={running ? t("chatUiComposerBusyPlaceholder") : t("chatUiComposerPlaceholder")}
         running={running}
         onStop={stop}
         stopDisabled={stopping}
@@ -874,6 +908,7 @@ const ConversationItem = React.memo(function ConversationItem({
   selectedForDelete: boolean;
   onSelectedForDeleteChange: (id: number, checked: boolean) => void;
 }) {
+  const { t } = useLocale();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const renameInputRef = React.useRef<HTMLInputElement>(null);
   const cancelRenameRef = React.useRef(false);
@@ -897,7 +932,7 @@ const ConversationItem = React.memo(function ConversationItem({
         <Checkbox
           checked={selectedForDelete}
           onCheckedChange={(checked) => onSelectedForDeleteChange(conv.id, checked === true)}
-          aria-label={`Select conversation "${conv.title || "New conversation"}"`}
+          aria-label={`${t("chatUiSelectConversation")} "${conv.title || t("chatUiNewConversation")}"`}
           className="ml-1 shrink-0"
         />
       )}
@@ -924,16 +959,16 @@ const ConversationItem = React.memo(function ConversationItem({
           type="button"
           onClick={() => onSelect(conv.id)}
           onDoubleClick={() => onStartRename(conv)}
-          title="Double-click to rename"
+          title={t("chatUiDoubleClickRename")}
           className="min-w-0 flex-1 rounded-md px-2 py-1.5 text-left"
         >
           <div className="flex min-w-0 items-center gap-1.5">
-            {pinned && <PinIcon className="text-primary size-3 shrink-0" aria-label="Pinned" />}
-            <div className="truncate text-sm">{conv.title || "New conversation"}</div>
+            {pinned && <PinIcon className="text-primary size-3 shrink-0" aria-label={t("pinned")} />}
+            <div className="truncate text-sm">{conv.title || t("chatUiNewConversation")}</div>
             {conv.running ? (
-              <Badge variant="secondary" className="shrink-0 gap-1" title="Agent is running">
+              <Badge variant="secondary" className="shrink-0 gap-1" title={t("chatUiAgentRunning")}>
                 <Spinner className="size-3" aria-hidden="true" />
-                Running
+                {t("taskStatusRunning")}
               </Badge>
             ) : null}
           </div>
@@ -963,7 +998,7 @@ const ConversationItem = React.memo(function ConversationItem({
             variant="ghost"
             size="icon-sm"
             className="text-muted-foreground shrink-0"
-            aria-label={`Manage conversation "${conv.title || "New conversation"}"`}
+            aria-label={`${t("chatUiManageConversation")} "${conv.title || t("chatUiNewConversation")}"`}
           >
             <MoreHorizontalIcon />
           </Button>
@@ -972,18 +1007,18 @@ const ConversationItem = React.memo(function ConversationItem({
           <DropdownMenuGroup>
             <DropdownMenuItem onSelect={() => onStartRename(conv)}>
               <PencilIcon />
-              Rename
+              {t("rename")}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onTogglePinned(conv)}>
               {pinned ? <PinOffIcon /> : <PinIcon />}
-              {pinned ? "Unpin" : "Pin"}
+              {pinned ? t("unpin") : t("pin")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem variant="destructive" onSelect={() => setDeleteOpen(true)}>
               <Trash2Icon />
-              Delete
+              {t("delete")}
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
@@ -991,12 +1026,14 @@ const ConversationItem = React.memo(function ConversationItem({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete conversation "{conv.title || "New conversation"}"?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>
+              {t("chatUiDeleteConversation")} "{conv.title || t("chatUiNewConversation")}"?
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("chatUiCannotBeUndone")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => onDelete(conv.id)}>Delete</AlertDialogAction>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => onDelete(conv.id)}>{t("delete")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1017,12 +1054,13 @@ function AgentGroupHeader({
   hasActive: boolean;
   onToggle: (key: string) => void;
 }) {
+  const { t } = useLocale();
   return (
     <button
       type="button"
       onClick={() => onToggle(group.key)}
       aria-expanded={!collapsed}
-      title={collapsed ? `Expand "${group.name}"` : `Collapse "${group.name}"`}
+      title={`${collapsed ? t("chatUiExpandGroup") : t("chatUiCollapseGroup")} "${group.name}"`}
       className={cn(
         "sticky top-0 z-10 flex min-w-0 items-center gap-1.5 rounded-md bg-card px-1.5 py-1 text-left font-medium text-[11px] transition-colors hover:bg-accent/50",
         collapsed && hasActive ? "text-foreground" : "text-muted-foreground",
@@ -1032,10 +1070,10 @@ function AgentGroupHeader({
       <Bot className="size-3 shrink-0" />
       <span className="min-w-0 flex-1 truncate">{group.name}</span>
       {collapsed && hasActive && (
-        <span className="size-1.5 shrink-0 rounded-full bg-primary" title="The current conversation is in this group" />
+        <span className="size-1.5 shrink-0 rounded-full bg-primary" title={t("chatUiCurrentGroupHint")} />
       )}
       {group.runningCount > 0 && (
-        <Spinner className="size-3 shrink-0" aria-label={`${group.runningCount} conversations running`} />
+        <Spinner className="size-3 shrink-0" aria-label={`${group.runningCount} ${t("chatUiConversationsRunning")}`} />
       )}
       <span className="shrink-0 tabular-nums opacity-60">{group.conversations.length}</span>
     </button>
@@ -1043,6 +1081,7 @@ function AgentGroupHeader({
 }
 
 export default function ChatPage() {
+  const { t } = useLocale();
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [convs, setConvs] = React.useState<Conversation[]>([]);
@@ -1050,15 +1089,18 @@ export default function ChatPage() {
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
   const [sourceRequested, setSourceRequested] = React.useState(false);
   const [convsLoaded, setConvsLoaded] = React.useState(false);
-  const selectConversation = React.useCallback((id: number | null) => {
-    if (id !== selectedId) {
-      const url = new URL(window.location.href);
-      url.searchParams.delete("approval");
-      setSourceRequested(false);
-      window.history.replaceState(null, "", url);
-    }
-    setSelectedId(id);
-  }, [selectedId]);
+  const selectConversation = React.useCallback(
+    (id: number | null) => {
+      if (id !== selectedId) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("approval");
+        setSourceRequested(false);
+        window.history.replaceState(null, "", url);
+      }
+      setSelectedId(id);
+    },
+    [selectedId],
+  );
 
   const [renamingId, setRenamingId] = React.useState<number | null>(null);
   const [renameText, setRenameText] = React.useState("");
@@ -1085,7 +1127,10 @@ export default function ChatPage() {
     const seq = ++conversationListSeq.current;
     try {
       const items = await api.conversations();
-      if (seq === conversationListSeq.current) { setConvs(items); setConvsLoaded(true); }
+      if (seq === conversationListSeq.current) {
+        setConvs(items);
+        setConvsLoaded(true);
+      }
     } catch {
       // Preserve the selected transcript and list on a transient poll failure.
     }
@@ -1214,7 +1259,9 @@ export default function ChatPage() {
       .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
   }, [convs, chatAgents, agentByKey, agentFilter]);
   const conversationCountLabel =
-    agentFilter === null ? `${convs.length} total` : `${filteredConversations.length} / ${convs.length}`;
+    agentFilter === null
+      ? `${t("chatUiTotalPrefix")} ${convs.length}`
+      : `${filteredConversations.length} / ${convs.length}`;
 
   function changeAgentFilter(key: string | null) {
     setAgentFilter(key);
@@ -1265,10 +1312,10 @@ export default function ChatPage() {
         });
         void reloadConvs();
       } catch (e) {
-        toast.error("Delete failed: " + (e as Error).message);
+        toast.error(`${t("chatUiDeleteFailed")}: ${(e as Error).message}`);
       }
     },
-    [reloadConvs],
+    [reloadConvs, t],
   );
 
   async function deleteSelectedConversations() {
@@ -1282,7 +1329,7 @@ export default function ChatPage() {
         const result = await api.deleteConversations(ids.slice(offset, offset + 100));
         for (const item of result.items) {
           if (item.ok) deleted.add(item.id);
-          else failed.push({ id: item.id, error: item.error ?? "conversation not found" });
+          else failed.push({ id: item.id, error: item.error ?? t("chatUiConversationNotFound") });
         }
       }
       if (deleted.has(selectedId ?? -1)) selectConversation(null);
@@ -1291,13 +1338,15 @@ export default function ChatPage() {
         for (const id of deleted) next.delete(id);
         return next;
       });
-      if (deleted.size > 0) toast.success(`Deleted ${deleted.size} conversations`);
+      if (deleted.size > 0) toast.success(`${deleted.size} ${t("chatUiDeletedSuffix")}`);
       if (failed.length > 0) {
         const details = failed
           .slice(0, 3)
           .map((item) => `#${item.id} (${item.error})`)
           .join("; ");
-        toast.error(`Failed to delete ${failed.length} conversations: ${details}${failed.length > 3 ? " etc." : ""}`);
+        toast.error(
+          `${failed.length} ${t("chatUiDeleteFailedSuffix")}: ${details}${failed.length > 3 ? ` ${t("chatUiEtc")}` : ""}`,
+        );
       }
       setBulkDeleteOpen(false);
       // Fully successful → return to the clean list; keep selection mode on if
@@ -1305,7 +1354,7 @@ export default function ChatPage() {
       if (failed.length === 0) setSelectionMode(false);
       void reloadConvs();
     } catch (error) {
-      toast.error(`Bulk delete failed: ${(error as Error).message}`);
+      toast.error(`${t("chatUiBulkDeleteFailed")}: ${(error as Error).message}`);
       void reloadConvs();
     } finally {
       setBulkDeleting(false);
@@ -1319,10 +1368,10 @@ export default function ChatPage() {
         await api.pinConversation(conversation.id, !pinned);
         void reloadConvs();
       } catch (e) {
-        toast.error(`Failed to ${pinned ? "unpin" : "pin"}: ${(e as Error).message}`);
+        toast.error(`${pinned ? t("chatUiUnpinFailed") : t("chatUiPinFailed")}: ${(e as Error).message}`);
       }
     },
-    [reloadConvs],
+    [reloadConvs, t],
   );
 
   const startRename = React.useCallback((c: Conversation) => {
@@ -1338,10 +1387,10 @@ export default function ChatPage() {
         await api.renameConversation(id, title);
         void reloadConvs();
       } catch (e) {
-        toast.error("Rename failed: " + (e as Error).message);
+        toast.error(`${t("chatUiRenameFailed")}: ${(e as Error).message}`);
       }
     },
-    [reloadConvs],
+    [reloadConvs, t],
   );
   const cancelRename = React.useCallback(() => setRenamingId(null), []);
 
@@ -1355,20 +1404,20 @@ export default function ChatPage() {
         <div className="bg-card flex flex-col overflow-hidden rounded-lg border">
           <div className="flex flex-col gap-2 border-b p-2">
             <Button size="sm" className="w-full" onClick={() => selectConversation(null)}>
-              <PlusIcon /> New conversation
+              <PlusIcon /> {t("chatUiNewConversation")}
             </Button>
             <Select
               value={agentFilter === null ? "all" : `agent:${agentFilter}`}
               onValueChange={(value) => changeAgentFilter(value === "all" ? null : value.slice(6))}
               disabled={bulkDeleting}
             >
-              <SelectTrigger size="sm" className="w-full min-w-0" aria-label="Filter conversations by agent">
+              <SelectTrigger size="sm" className="w-full min-w-0" aria-label={t("chatUiFilterByAgent")}>
                 <Bot />
-                <SelectValue placeholder="All agents" />
+                <SelectValue placeholder={t("chatUiAllAgents")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value="all">All agents</SelectItem>
+                  <SelectItem value="all">{t("chatUiAllAgents")}</SelectItem>
                   {agentFilterOptions.map((agent) => (
                     <SelectItem key={agent.key} value={`agent:${agent.key}`}>
                       {agent.name} ({agent.count})
@@ -1383,11 +1432,13 @@ export default function ChatPage() {
                   <Checkbox
                     checked={conversationHeaderChecked}
                     onCheckedChange={(checked) => toggleAllConversations(checked === true)}
-                    aria-label="Select all conversations matching the current filter"
+                    aria-label={t("chatUiSelectAllFiltered")}
                     disabled={filteredConversations.length === 0 || bulkDeleting}
                   />
                   <span className="text-muted-foreground min-w-0 flex-1 text-xs tabular-nums">
-                    {selectedConversationCount > 0 ? `${selectedConversationCount} selected` : conversationCountLabel}
+                    {selectedConversationCount > 0
+                      ? `${selectedConversationCount} ${t("selected")}`
+                      : conversationCountLabel}
                   </span>
                   {selectedConversationCount > 0 && (
                     <Button
@@ -1397,11 +1448,11 @@ export default function ChatPage() {
                       onClick={() => setBulkDeleteOpen(true)}
                     >
                       <Trash2Icon data-icon="inline-start" />
-                      Delete
+                      {t("delete")}
                     </Button>
                   )}
                   <Button size="sm" variant="ghost" onClick={exitSelectionMode}>
-                    Done
+                    {t("chatUiDone")}
                   </Button>
                 </div>
               ) : (
@@ -1417,7 +1468,7 @@ export default function ChatPage() {
                     disabled={filteredConversations.length === 0}
                   >
                     <ListChecksIcon data-icon="inline-start" />
-                    Select
+                    {t("chatUiSelect")}
                   </Button>
                 </div>
               ))}
@@ -1430,7 +1481,7 @@ export default function ChatPage() {
             <div className="flex min-w-0 flex-col gap-0.5 p-2">
               {filteredConversations.length === 0 && (
                 <p className="text-muted-foreground px-2 py-6 text-center text-xs">
-                  {agentFilter === null ? "No conversations yet" : "No conversations for this agent"}
+                  {agentFilter === null ? t("chatUiNoConversations") : t("chatUiNoConversationsForAgent")}
                 </p>
               )}
               {pinnedConversations.map((c) => (
@@ -1496,7 +1547,7 @@ export default function ChatPage() {
                   className="mt-1 w-full"
                   onClick={() => setVisibleConversationCount((count) => count + CONVERSATION_LIST_PAGE)}
                 >
-                  Load more
+                  {t("chatUiLoadMore")}
                 </Button>
               )}
             </div>
@@ -1517,7 +1568,7 @@ export default function ChatPage() {
             />
           ) : sourceRequested ? (
             <div role="status" className="p-6 text-sm text-muted-foreground">
-              {convsLoaded ? "The conversation has been deleted" : "Loading the conversation…"}
+              {convsLoaded ? t("chatUiConversationDeleted") : t("chatUiLoadingConversation")}
             </div>
           ) : (
             <DraftChat
@@ -1545,11 +1596,13 @@ export default function ChatPage() {
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedConversationCount} selected conversations?</AlertDialogTitle>
-            <AlertDialogDescription>Conversation messages and execution records will be deleted with them. This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogTitle>
+              {t("chatUiDeleteSelectedPrefix")} {selectedConversationCount} {t("chatUiDeleteSelectedSuffix")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>{t("chatUiDeleteSelectedDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={bulkDeleting}>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={bulkDeleting || selectedConversationCount === 0}
@@ -1559,7 +1612,7 @@ export default function ChatPage() {
               }}
             >
               {bulkDeleting && <Loader2Icon data-icon="inline-start" className="animate-spin" />}
-              {bulkDeleting ? "Deleting" : "Confirm delete"}
+              {bulkDeleting ? t("deleting") : t("taskTabSessionsConfirmDelete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

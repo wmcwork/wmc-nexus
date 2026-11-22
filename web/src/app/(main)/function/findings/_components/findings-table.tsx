@@ -36,8 +36,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { statusMeta, type Tone, toneClasses } from "@/lib/status";
 import { type Locale, type TranslationKey, useLocale } from "@/lib/locale";
+import { statusMeta, type Tone, toneClasses } from "@/lib/status";
 import type {
   ActiveFindingRetest,
   Finding,
@@ -70,13 +70,7 @@ export const VERIFICATION_STATUSES: VerificationStatus[] = [
   "false_positive",
 ];
 
-export const FINDING_REPORT_STATES: FindingReportState[] = [
-  "none",
-  "submitted",
-  "accepted",
-  "rejected",
-  "duplicate",
-];
+export const FINDING_REPORT_STATES: FindingReportState[] = ["none", "submitted", "accepted", "rejected", "duplicate"];
 
 export const FINDING_STATUS_TRANSLATIONS: Record<FindingStatus, TranslationKey> = {
   pending: "statusPending",
@@ -239,7 +233,7 @@ export function FindingsTable({
   activeRetests,
   onDeepen,
   onDelete,
-  selectAllLabel = "Select all on this page",
+  selectAllLabel,
 }: FindingsTableProps) {
   const { locale, t } = useLocale();
   const selectableIds = items.map((finding) => finding.finding_id).filter((id): id is string => Boolean(id));
@@ -260,7 +254,7 @@ export function FindingsTable({
             <Checkbox
               checked={headerChecked}
               onCheckedChange={(checked) => onToggleSelectedPage(selectableIds, checked === true)}
-              aria-label={selectAllLabel}
+              aria-label={selectAllLabel ?? t("findingSelectAllPage")}
             />
           </TableHead>
           <TableHead className="w-8" />
@@ -322,11 +316,13 @@ export function FindingsTable({
                         {f.name || f.vulnclass || t("findingUncategorized")}
                       </Link>
                     ) : (
-                      <span className="truncate font-medium">{f.name || f.vulnclass || "Uncategorized"}</span>
+                      <span className="truncate font-medium">{f.name || f.vulnclass || t("findingUncategorized")}</span>
                     )}
                     <span className="truncate text-xs text-muted-foreground">{f.summary}</span>
                     <div className="flex flex-wrap items-center gap-1">
-                      <Badge variant="outline">{t("findingTrafficEvidence")}: {f.traffic_count ?? 0}</Badge>
+                      <Badge variant="outline">
+                        {t("findingTrafficEvidence")}: {f.traffic_count ?? 0}
+                      </Badge>
                       <VerificationBadge finding={f} />
                     </div>
                   </div>
@@ -410,22 +406,22 @@ export function FindingsTable({
                   <div className="flex items-center gap-1">
                     {retest ? (
                       <Button asChild size="sm" variant="ghost">
-                        <Link href={`/chat?c=${retest.conversation_id}`} title="View the retest in progress">
+                        <Link href={`/chat?c=${retest.conversation_id}`} title={t("miscUiRetestInProgress")}>
                           <Spinner data-icon="inline-start" />
-                          Retesting
+                          {t("miscUiRetesting")}
                         </Link>
                       </Button>
                     ) : null}
                     {!retest && f.finding_id && !f.inherited ? (
-                      <Button size="sm" variant="ghost" onClick={() => onRetest(f)} title="Retest this vulnerability in a separate conversation">
+                      <Button size="sm" variant="ghost" onClick={() => onRetest(f)} title={t("miscUiRetestTitle")}>
                         <RotateCcwIcon data-icon="inline-start" />
-                        Retest
+                        {t("miscUiRetest")}
                       </Button>
                     ) : null}
                     {f.finding_id && f.task_id && (
                       <Button size="sm" variant="ghost" onClick={() => onDeepen(f)}>
                         <FlaskConicalIcon data-icon="inline-start" />
-                        Deepen
+                        {t("miscUiDeepen")}
                       </Button>
                     )}
                     {f.finding_id && (
@@ -435,25 +431,25 @@ export function FindingsTable({
                             size="icon"
                             variant="ghost"
                             className="size-7 text-muted-foreground hover:text-destructive"
-                            aria-label="Delete vulnerability"
+                            aria-label={t("miscUiDeleteVulnerability")}
                           >
                             <Trash2Icon className="size-4" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete this vulnerability?</AlertDialogTitle>
+                            <AlertDialogTitle>{t("miscUiDeleteVulnTitle")}</AlertDialogTitle>
                             <AlertDialogDescription className="break-words">
                               "
                               <span className="break-all">
                                 {f.name || f.vulnclass || f.summary || `#${f.finding_id}`}
                               </span>
-                              " will be permanently deleted and removed from the findings list, the task findings tab, and the exploration graph. This action cannot be undone.
+                              " {t("miscUiDeleteVulnBody")}
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(f)}>Delete</AlertDialogAction>
+                            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(f)}>{t("delete")}</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -471,23 +467,23 @@ export function FindingsTable({
                       {f.finding_id && edit && (
                         <div className="flex flex-wrap items-end gap-3 rounded-md border bg-background px-3 py-2.5">
                           <div className="flex min-w-[12rem] flex-1 flex-col gap-1">
-                            <Label className="text-xs text-muted-foreground">Vulnerability</Label>
+                            <Label className="text-xs text-muted-foreground">{t("findingVulnerability")}</Label>
                             <Input
                               value={edit.name}
                               onChange={(e) => onEditChange((s) => (s ? { ...s, name: e.target.value } : s))}
-                              placeholder="Readable title; falls back to category when empty"
+                              placeholder={t("miscUiTitlePlaceholder")}
                             />
                           </div>
                           <div className="flex min-w-[10rem] flex-col gap-1">
-                            <Label className="text-xs text-muted-foreground">Category</Label>
+                            <Label className="text-xs text-muted-foreground">{t("category")}</Label>
                             <Input
                               value={edit.vulnclass}
                               onChange={(e) => onEditChange((s) => (s ? { ...s, vulnclass: e.target.value } : s))}
-                              placeholder="e.g. SQL Injection"
+                              placeholder={t("miscUiCategoryPlaceholder")}
                             />
                           </div>
                           <div className="flex flex-col gap-1">
-                            <Label className="text-xs text-muted-foreground">Severity</Label>
+                            <Label className="text-xs text-muted-foreground">{t("findingSeverity")}</Label>
                             <Select
                               value={edit.severity}
                               onValueChange={(v) => onEditChange((s) => (s ? { ...s, severity: v as Severity } : s))}
@@ -505,23 +501,23 @@ export function FindingsTable({
                             </Select>
                           </div>
                           <Button size="sm" disabled={saving} onClick={() => onSave(f)}>
-                            {saving ? "Saving…" : "Save"}
+                            {saving ? t("miscUiSavingDots") : t("save")}
                           </Button>
                         </div>
                       )}
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <ShieldAlertIcon className="size-3.5" />
-                        Evidence
+                        {t("miscUiEvidence")}
                         {f.vulnclass && (
                           <span>
-                            · Type:
+                            · {t("taskUiType")}:
                             <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{f.vulnclass}</code>
                           </span>
                         )}
                         {f.param_id && <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{f.param_id}</code>}
                         {f.assets && f.assets.length > 0 && (
                           <span className="flex flex-wrap items-center gap-1">
-                            · Assets:
+                            · {t("findingAssets")}:
                             {f.assets.map((a) => (
                               <code key={a.id} className="rounded bg-muted px-1.5 py-0.5 font-mono" title={a.type}>
                                 {a.label}
@@ -540,12 +536,12 @@ export function FindingsTable({
                           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                             <span className="flex items-center gap-2">
                               <FileTextIcon className="size-3.5" />
-                              Detailed report
+                              {t("findingDetailedReport")}
                             </span>
                             {reports[rowKey]?.status === "done" && reports[rowKey]?.text.trim() && (
                               <CopyButton
                                 text={reports[rowKey]?.text}
-                                successMessage="Detailed report copied"
+                                successMessage={t("findingDetailedReportCopied")}
                                 variant="ghost"
                                 className="h-6 px-2 text-xs"
                               />
@@ -554,11 +550,11 @@ export function FindingsTable({
                           {(() => {
                             const rep = reports[rowKey];
                             if (!rep || rep.status === "loading")
-                              return <p className="text-xs text-muted-foreground">Loading…</p>;
+                              return <p className="text-xs text-muted-foreground">{t("taskUiLoading")}</p>;
                             if (rep.status === "error")
-                              return <p className="text-xs text-muted-foreground">Failed to load the report.</p>;
+                              return <p className="text-xs text-muted-foreground">{t("miscUiReportLoadFailed")}</p>;
                             if (!rep.text.trim())
-                              return <p className="text-xs text-muted-foreground">No detailed report yet.</p>;
+                              return <p className="text-xs text-muted-foreground">{t("miscUiNoDetailedReportYet")}</p>;
                             return (
                               // break-words inherits into paragraphs/lists; pre additionally gets
                               // whitespace-pre-wrap so code blocks wrap too — otherwise long code lines/URLs
@@ -580,7 +576,7 @@ export function FindingsTable({
         {items.length === 0 && (
           <TableRow>
             <TableCell colSpan={COLUMN_COUNT} className="py-12 text-center text-sm text-muted-foreground">
-              No matching findings.
+              {t("findingNoMatching")}
             </TableCell>
           </TableRow>
         )}

@@ -33,13 +33,13 @@ import {
   PinOffIcon,
   PlayIcon,
   PlusIcon,
-  TrashIcon,
   SaveIcon,
   SearchIcon,
   SlidersHorizontalIcon,
   StarIcon,
   TagsIcon,
   Trash2Icon,
+  TrashIcon,
   Undo2Icon,
   XIcon,
 } from "lucide-react";
@@ -119,14 +119,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { setVisibleInterval } from "@/lib/polling";
 import { api } from "@/lib/api";
-import { type TranslationKey, useLocale } from "@/lib/locale";
 import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
+import { type TranslationKey, useLocale } from "@/lib/locale";
+import { setVisibleInterval } from "@/lib/polling";
 import { type SortDirection, useStoredSortPreference } from "@/lib/sort-preference";
 import type {
   AssetInterceptRuleInput,
-  TaskCredentialInput,
   ChatAttachment,
   Company,
   DeleteTaskOptions,
@@ -136,6 +135,7 @@ import type {
   TaskArchive,
   TaskArchiveState,
   TaskCategory,
+  TaskCredentialInput,
   TaskStatus,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -579,7 +579,7 @@ export default function TasksPage() {
         lastRef.current = "";
         load();
       } catch (error) {
-        toast.error(`${t("rename")} failed: ${(error as Error).message}`);
+        toast.error(`${t("miscUiRenameFailed")}: ${(error as Error).message}`);
         throw error;
       }
     },
@@ -658,7 +658,8 @@ export default function TasksPage() {
           return next;
         });
         const details = deleteDetails(total, t);
-        const summary = `${deleted.length} ${t("tasksDeleted")}` + (details.length > 0 ? ` (${details.join(", ")})` : "");
+        const summary =
+          `${deleted.length} ${t("tasksDeleted")}` + (details.length > 0 ? ` (${details.join(", ")})` : "");
         if (warnings.length > 0) {
           toast.warning(`${summary}; ${t("externalCleanupFailed")}: ${warnings.join("; ")}`);
         } else {
@@ -735,14 +736,18 @@ export default function TasksPage() {
         if (failed.length > 0) {
           const details = failed
             .slice(0, 3)
-            .map((item) => `#${item.id} (${item.error || "state changed"})`)
+            .map((item) => `#${item.id} (${item.error || t("miscUiStateChanged")})`)
             .join("; ");
-          toast.error(`${failed.length} ${t("tasksControlFailed")}: ${details}${failed.length > 3 ? ` ${t("more")}` : ""}`);
+          toast.error(
+            `${failed.length} ${t("tasksControlFailed")}: ${details}${failed.length > 3 ? ` ${t("more")}` : ""}`,
+          );
         }
         lastRef.current = "";
         load();
       } catch (error) {
-        toast.error(`${action === "pause" ? t("bulkPauseFailed") : t("bulkResumeFailed")}: ${(error as Error).message}`);
+        toast.error(
+          `${action === "pause" ? t("bulkPauseFailed") : t("bulkResumeFailed")}: ${(error as Error).message}`,
+        );
       } finally {
         setBatchControlling(null);
       }
@@ -851,7 +856,9 @@ export default function TasksPage() {
               </span>
               {selectedIds.size > 0 && (
                 <>
-                  <span className="text-xs tabular-nums">{selectedIds.size} {t("selected")}</span>
+                  <span className="text-xs tabular-nums">
+                    {selectedIds.size} {t("selected")}
+                  </span>
                   <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
                     {t("clearSelection")}
                   </Button>
@@ -1239,9 +1246,7 @@ const TaskRow = React.memo(function TaskRow({
           const f = task.findings;
           const total = f ? f.critical + f.high + f.medium + f.low : 0;
           if (!f || total === 0) return <span className="text-muted-foreground">0</span>;
-          const seg = (n: number, cls: string) => (
-            <span className={n > 0 ? cls : "text-muted-foreground"}>{n}</span>
-          );
+          const seg = (n: number, cls: string) => <span className={n > 0 ? cls : "text-muted-foreground"}>{n}</span>;
           return (
             <span className="font-medium whitespace-nowrap" title={t("taskSeverityTitle")}>
               {seg(f.critical, "text-rose-600 dark:text-rose-400")}
@@ -1360,7 +1365,7 @@ function TaskNameEditor({ task, onRename }: { task: Task; onRename: (task: Task,
           maxLength={200}
           autoFocus
           disabled={saving}
-          aria-label={`Task #${task.id} name`}
+          aria-label={`${t("task")} #${task.id} ${t("miscUiName")}`}
           className="h-7 min-w-28 max-w-48 px-2 font-medium"
           onFocus={(event) => event.currentTarget.select()}
           onChange={(event) => setName(event.target.value)}
@@ -1395,7 +1400,7 @@ function TaskNameEditor({ task, onRename }: { task: Task; onRename: (task: Task,
         variant="ghost"
         size="icon-xs"
         className="shrink-0 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
-        aria-label={`Rename task #${task.id}`}
+        aria-label={`${t("rename")} ${t("task")} #${task.id}`}
         title={t("rename")}
         onClick={() => {
           setName(task.name ?? "");
@@ -1425,7 +1430,7 @@ function TaskPinAction({ task, onTogglePinned }: { task: Task; onTogglePinned: (
       variant="ghost"
       size="icon"
       disabled={pinning}
-      aria-label={pinned ? `${t("unpin")} task #${task.id}` : `${t("pin")} task #${task.id}`}
+      aria-label={pinned ? `${t("unpin")} ${t("task")} #${task.id}` : `${t("pin")} ${t("task")} #${task.id}`}
       title={pinned ? t("unpin") : t("pin")}
       onClick={async () => {
         setPinning(true);
@@ -1483,11 +1488,11 @@ function TaskControlButton({
   );
 }
 
-function archiveBlockReason(task: Task): string {
-  if (task.queued) return "Queued tasks must be paused first";
-  if (!ARCHIVABLE_STATUSES.has(task.status)) return "Running or unfinished tasks must be paused first";
+function archiveBlockReason(task: Task, t: (key: TranslationKey) => string): string {
+  if (task.queued) return t("taskUiQueuedPauseFirst");
+  if (!ARCHIVABLE_STATUSES.has(task.status)) return t("taskUiRunningPauseFirst");
   if (task.archive_blocked_by_task_id) {
-    return `The task is directly inherited by unarchived task #${task.archive_blocked_by_task_id}; archive the dependent task first`;
+    return `${t("miscUiInheritedByUnarchived")} #${task.archive_blocked_by_task_id}${t("taskUiArchiveDependentFirst")}`;
   }
   return "";
 }
@@ -1540,9 +1545,14 @@ function ArchiveConfirmDialog({
 
 function TaskArchiveAction({ task, onArchive }: { task: Task; onArchive: (task: Task) => Promise<void> }) {
   const { t } = useLocale();
-  const reason = archiveBlockReason(task);
+  const reason = archiveBlockReason(task, t);
   const trigger = (
-    <Button size="icon" variant="ghost" disabled={Boolean(reason)} aria-label={`${t("archive")} task #${task.id}`}>
+    <Button
+      size="icon"
+      variant="ghost"
+      disabled={Boolean(reason)}
+      aria-label={`${t("archive")} ${t("task")} #${task.id}`}
+    >
       <ArchiveIcon />
     </Button>
   );
@@ -1840,11 +1850,13 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="all">{t("allArchiveStates")}</SelectItem>
-                {([...ARCHIVE_PROCESSING_STATES, ...ARCHIVE_FAILED_STATES, "ready"] as TaskArchiveState[]).map((state) => (
-                  <SelectItem key={state} value={state}>
-                    {archiveStateLabel(state, t)}
-                  </SelectItem>
-                ))}
+                {([...ARCHIVE_PROCESSING_STATES, ...ARCHIVE_FAILED_STATES, "ready"] as TaskArchiveState[]).map(
+                  (state) => (
+                    <SelectItem key={state} value={state}>
+                      {archiveStateLabel(state, t)}
+                    </SelectItem>
+                  ),
+                )}
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -1946,7 +1958,9 @@ function TaskArchivesPanel({ onChanged }: { onChanged: () => void }) {
                     <TableCell>
                       <StatusBadge domain="task" value={archive.original_status} dot />
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{archive.category_name || t("uncategorized")}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {archive.category_name || t("uncategorized")}
+                    </TableCell>
                     <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
                       {archiveDate(archive.archived_at || archive.requested_at)}
                     </TableCell>
@@ -2205,7 +2219,9 @@ function DeleteTaskDialog({
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>{t("deleteTask")} #{task.id}?</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t("deleteTask")} #{task.id}?
+          </AlertDialogTitle>
           <AlertDialogDescription className="break-words">
             {task.description ? (
               <>
@@ -2217,8 +2233,7 @@ function DeleteTaskDialog({
               </>
             ) : (
               t("thisTask")
-            )}
-            {" "}
+            )}{" "}
             {t("deleteTaskDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -2603,12 +2618,12 @@ function CategoryPicker({
   );
 }
 
-const COMPANY_SCOPE_LABELS: Record<string, string> = {
-  domain: "Domain",
-  ip: "IP",
-  cidr: "CIDR",
-  icp: "ICP",
-  keyword: "Keyword",
+const COMPANY_SCOPE_LABELS: Record<string, TranslationKey> = {
+  domain: "miscUiDomain",
+  ip: "assetIp",
+  cidr: "taskUiKindCidr",
+  icp: "taskUiKindIcp",
+  keyword: "taskUiKindKeyword",
 };
 
 function companyScopeSummary(company: Company, t: (key: TranslationKey) => string): string {
@@ -2616,7 +2631,8 @@ function companyScopeSummary(company: Company, t: (key: TranslationKey) => strin
   if (rows.length === 0) return t("noCompanyScope");
   const preview = rows.slice(0, 3).map((row) => {
     const value = row.raw || row.value || row.domain || row.net || "";
-    return `${COMPANY_SCOPE_LABELS[row.kind] ?? row.kind}: ${value}`;
+    const labelKey = COMPANY_SCOPE_LABELS[row.kind];
+    return `${labelKey ? t(labelKey) : row.kind}: ${value}`;
   });
   return `${preview.join(" · ")}${rows.length > preview.length ? ` · ${rows.length - preview.length} ${t("more")}` : ""}`;
 }
@@ -2668,7 +2684,9 @@ function CompanyPicker({
               <ComboboxItem key={companyID} value={companyID}>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="min-w-0 flex-1 truncate font-medium">{company?.name ?? `Company #${companyID}`}</span>
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {company?.name ?? `Company #${companyID}`}
+                    </span>
                     <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                       {company?.asset_count ?? 0} {t("assets")}
                     </span>
@@ -3034,7 +3052,9 @@ function CategoryManagementSheet({
                       {visibleTasks.length === 0 ? (
                         <Empty className="min-h-36 border">
                           <EmptyHeader>
-                            <EmptyTitle>{selectedCategory ? t("noTasksInCategory") : t("noUncategorizedTasks")}</EmptyTitle>
+                            <EmptyTitle>
+                              {selectedCategory ? t("noTasksInCategory") : t("noUncategorizedTasks")}
+                            </EmptyTitle>
                             <EmptyDescription>{t("tasksAppearWhenAssigned")}</EmptyDescription>
                           </EmptyHeader>
                         </Empty>
@@ -3092,9 +3112,7 @@ function CategoryManagementSheet({
             <AlertDialogTitle>
               {t("deleteCategoryQuestion")} "{selectedCategory?.name || t("unnamedCategory")}"?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("deleteCategoryDescription")}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{t("deleteCategoryDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>{t("cancel")}</AlertDialogCancel>
@@ -3218,7 +3236,12 @@ function CreateTaskSheet({
           .map((r) => ({ ...r, pattern: r.pattern.trim() }))
           .filter((r) => r.pattern !== ""),
         credentials: credentials
-          .map((c) => ({ domain: c.domain.trim(), username: c.username.trim(), password: c.password, note: c.note?.trim() ?? "" }))
+          .map((c) => ({
+            domain: c.domain.trim(),
+            username: c.username.trim(),
+            password: c.password,
+            note: c.note?.trim() ?? "",
+          }))
           .filter((c) => c.domain !== "" && c.username !== ""),
       });
       toast.success(t("taskCreated"));
@@ -3333,9 +3356,7 @@ function CreateTaskSheet({
                   {t("uploadFiles")}
                 </Button>
                 <span className="text-muted-foreground text-xs">
-                  {uploadCount > 0
-                    ? `${uploadCount} ${t("uploadedFilesHelp")}`
-                    : t("uploadFilesHelp")}
+                  {uploadCount > 0 ? `${uploadCount} ${t("uploadedFilesHelp")}` : t("uploadFilesHelp")}
                 </span>
               </div>
             </div>
@@ -3357,9 +3378,7 @@ function CreateTaskSheet({
                 onValueChange={setSourceTaskIDs}
                 portalContainer={sheetContentRef}
               />
-              <FieldDescription>
-                {t("linkTasksHelp")}
-              </FieldDescription>
+              <FieldDescription>{t("linkTasksHelp")}</FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="task-companies">{t("linkedCompanyScope")}</FieldLabel>
@@ -3397,17 +3416,23 @@ function CreateTaskSheet({
                     <Input
                       placeholder={t("accountDomain")}
                       value={c.domain}
-                      onChange={(e) => setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, domain: e.target.value } : x)))}
+                      onChange={(e) =>
+                        setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, domain: e.target.value } : x)))
+                      }
                     />
                     <Input
                       placeholder={t("emailOrUsername")}
                       value={c.username}
-                      onChange={(e) => setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, username: e.target.value } : x)))}
+                      onChange={(e) =>
+                        setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, username: e.target.value } : x)))
+                      }
                     />
                     <Input
                       placeholder={t("accountPassword")}
                       value={c.password}
-                      onChange={(e) => setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, password: e.target.value } : x)))}
+                      onChange={(e) =>
+                        setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, password: e.target.value } : x)))
+                      }
                     />
                     <Button
                       type="button"
@@ -3422,7 +3447,9 @@ function CreateTaskSheet({
                       className="sm:col-span-4"
                       placeholder={t("accountNote")}
                       value={c.note ?? ""}
-                      onChange={(e) => setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, note: e.target.value } : x)))}
+                      onChange={(e) =>
+                        setCredentials((prev) => prev.map((x, j) => (j === i ? { ...x, note: e.target.value } : x)))
+                      }
                     />
                   </div>
                 ))}
@@ -3431,7 +3458,9 @@ function CreateTaskSheet({
                   size="sm"
                   variant="outline"
                   className="w-fit"
-                  onClick={() => setCredentials((prev) => [...prev, { domain: "", username: "", password: "", note: "" }])}
+                  onClick={() =>
+                    setCredentials((prev) => [...prev, { domain: "", username: "", password: "", note: "" }])
+                  }
                 >
                   <PlusIcon className="size-4" /> {t("addAccount")}
                 </Button>
@@ -3444,7 +3473,9 @@ function CreateTaskSheet({
               <CollapsibleTrigger className="group flex w-full items-center gap-2 border-t pt-4 text-sm font-medium">
                 <ChevronRightIcon className="text-muted-foreground size-4 transition-transform group-data-[state=open]:rotate-90" />
                 {t("advancedSettings")}
-                <span className="text-muted-foreground ml-auto text-xs font-normal">{t("advancedSettingsSummary")}</span>
+                <span className="text-muted-foreground ml-auto text-xs font-normal">
+                  {t("advancedSettingsSummary")}
+                </span>
               </CollapsibleTrigger>
               <CollapsibleContent className="grid gap-5 pt-5">
                 <div className="grid gap-2">

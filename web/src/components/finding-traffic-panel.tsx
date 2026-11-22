@@ -25,13 +25,14 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
 import type { FindingTraffic, FindingTrafficBinding, TrafficEvidenceRole } from "@/lib/types";
 
-const ROLES: Record<TrafficEvidenceRole, string> = {
-  baseline: "Baseline",
-  proof: "Vulnerability proof",
-  verification: "Supplementary verification",
-  supporting: "Supporting evidence",
+const ROLE_LABEL_KEYS: Record<TrafficEvidenceRole, TranslationKey> = {
+  baseline: "dataUiRoleBaseline",
+  proof: "dataUiRoleProof",
+  verification: "dataUiRoleVerification",
+  supporting: "dataUiRoleSupporting",
 };
 
 export function FindingTrafficPanel({
@@ -45,6 +46,7 @@ export function FindingTrafficPanel({
   readOnly?: boolean;
   onChanged: () => void;
 }) {
+  const { t } = useLocale();
   const [data, setData] = React.useState<FindingTraffic | null>(null);
   const [error, setError] = React.useState("");
   const [adding, setAdding] = React.useState(false);
@@ -78,7 +80,7 @@ export function FindingTrafficPanel({
       setData(await action());
       setEditing(null);
       onChanged();
-      toast.success("Traffic evidence updated");
+      toast.success(t("dataUiEvidenceUpdated"));
     } catch (e) {
       toast.error((e as Error).message);
       setReload((n) => n + 1);
@@ -99,17 +101,19 @@ export function FindingTrafficPanel({
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <CardTitle>Linked traffic {data ? `(${data.bindings.length})` : ""}</CardTitle>
+            <CardTitle>
+              {t("dataUiLinkedTraffic")} {data ? `(${data.bindings.length})` : ""}
+            </CardTitle>
             {!readOnly ? (
               <Button variant="outline" size="sm" disabled={!data || busy} onClick={() => setAdding(true)}>
                 <PlusIcon data-icon="inline-start" />
-                Link traffic
+                {t("dataUiLinkTraffic")}
               </Button>
             ) : (
-              <Badge variant="outline">Inherited evidence · read-only</Badge>
+              <Badge variant="outline">{t("dataUiInheritedReadOnly")}</Badge>
             )}
           </div>
-          <CardDescription>Requests and responses organized in reproduction order. Bound evidence is kept even after raw traffic is purged.</CardDescription>
+          <CardDescription>{t("dataUiTrafficPanelDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {error ? (
@@ -117,7 +121,7 @@ export function FindingTrafficPanel({
               <AlertDescription>
                 {error}
                 <Button variant="link" onClick={() => setReload((n) => n + 1)}>
-                  Retry
+                  {t("retry")}
                 </Button>
               </AlertDescription>
             </Alert>
@@ -127,8 +131,8 @@ export function FindingTrafficPanel({
           ) : data.bindings.length === 0 ? (
             <Empty>
               <EmptyHeader>
-                <EmptyTitle>No linked traffic</EmptyTitle>
-                <EmptyDescription>Link baseline, vulnerability proof, and supplementary verification requests.</EmptyDescription>
+                <EmptyTitle>{t("dataUiNoLinkedTraffic")}</EmptyTitle>
+                <EmptyDescription>{t("dataUiNoLinkedTrafficHint")}</EmptyDescription>
               </EmptyHeader>
             </Empty>
           ) : (
@@ -136,12 +140,14 @@ export function FindingTrafficPanel({
               <div key={b.id} className="flex min-w-0 flex-col gap-2 rounded-md border p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">
-                    {index + 1}. {ROLES[b.role]}
+                    {index + 1}. {t(ROLE_LABEL_KEYS[b.role])}
                   </Badge>
                   <Badge variant="secondary">
                     {b.snapshot.method} · {b.snapshot.status}
                   </Badge>
-                  <span className="text-xs text-muted-foreground">Evidence #{b.id}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t("dataUiEvidenceNumber")} #{b.id}
+                  </span>
                 </div>
                 <Button
                   variant="link"
@@ -157,7 +163,7 @@ export function FindingTrafficPanel({
                   </span>
                   <div className="flex flex-wrap gap-1">
                     <Button variant="outline" size="sm" onClick={() => setPreview(b.id)}>
-                      View message
+                      {t("dataUiViewMessage")}
                     </Button>
                     {!readOnly ? (
                       <>
@@ -171,12 +177,12 @@ export function FindingTrafficPanel({
                             setNote(b.note);
                           }}
                         >
-                          Edit note
+                          {t("dataUiEditNote")}
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`Move evidence ${b.id} up`}
+                          aria-label={`${t("dataUiMoveEvidenceUp")} ${b.id}`}
                           disabled={busy || index === 0}
                           onClick={() => move(index, -1)}
                         >
@@ -185,7 +191,7 @@ export function FindingTrafficPanel({
                         <Button
                           variant="ghost"
                           size="icon-sm"
-                          aria-label={`Move evidence ${b.id} down`}
+                          aria-label={`${t("dataUiMoveEvidenceDown")} ${b.id}`}
                           disabled={busy || index === data.bindings.length - 1}
                           onClick={() => move(index, 1)}
                         >
@@ -199,7 +205,7 @@ export function FindingTrafficPanel({
                             void mutate(() => api.removeFindingTraffic(findingId, b.id, data.version, contextTask))
                           }
                         >
-                          Unlink
+                          {t("dataUiUnlink")}
                         </Button>
                       </>
                     ) : null}
@@ -236,21 +242,21 @@ export function FindingTrafficPanel({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit traffic evidence</DialogTitle>
-            <DialogDescription>Explain how this set of requests/responses supports the vulnerability conclusion.</DialogDescription>
+            <DialogTitle>{t("dataUiEditTrafficEvidence")}</DialogTitle>
+            <DialogDescription>{t("dataUiEditTrafficEvidenceDescription")}</DialogDescription>
           </DialogHeader>
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="evidence-role">Role</FieldLabel>
+              <FieldLabel htmlFor="evidence-role">{t("dataUiRole")}</FieldLabel>
               <Select value={role} onValueChange={(v) => setRole(v as TrafficEvidenceRole)}>
                 <SelectTrigger id="evidence-role">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {Object.entries(ROLES).map(([value, label]) => (
+                    {Object.entries(ROLE_LABEL_KEYS).map(([value, labelKey]) => (
                       <SelectItem key={value} value={value}>
-                        {label}
+                        {t(labelKey)}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -258,13 +264,13 @@ export function FindingTrafficPanel({
               </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="evidence-note">Evidence note</FieldLabel>
+              <FieldLabel htmlFor="evidence-note">{t("dataUiEvidenceNote")}</FieldLabel>
               <Textarea id="evidence-note" value={note} onChange={(e) => setNote(e.target.value)} />
             </Field>
           </FieldGroup>
           <DialogFooter>
             <Button variant="outline" disabled={busy} onClick={() => setEditing(null)}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button
               disabled={busy || !editing || !data}
@@ -275,7 +281,7 @@ export function FindingTrafficPanel({
                   );
               }}
             >
-              Save note
+              {t("dataUiSaveNote")}
             </Button>
           </DialogFooter>
         </DialogContent>

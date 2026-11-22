@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 
 export function ChangePasswordDialog({
   open,
@@ -28,6 +29,7 @@ export function ChangePasswordDialog({
   const [newPassword, setNewPassword] = React.useState("");
   const [confirmPassword, setConfirmPassword] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const { t } = useLocale();
 
   // reset fields whenever the dialog closes
   React.useEffect(() => {
@@ -41,21 +43,21 @@ export function ChangePasswordDialog({
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!oldPassword || !newPassword) {
-      toast.error("Fill in the current password and the new password");
+      toast.error(t("miscUiFillPasswords"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("The two new passwords do not match");
+      toast.error(t("miscUiPasswordMismatch"));
       return;
     }
     setSaving(true);
     api
       .changePassword(oldPassword, newPassword)
       .then(() => {
-        toast.success("Password changed");
+        toast.success(t("miscUiPasswordChanged"));
         onOpenChange(false);
       })
-      .catch((err) => toast.error(`Change failed: ${(err as Error).message}`))
+      .catch((err) => toast.error(`${t("miscUiChangeFailed")}: ${(err as Error).message}`))
       .finally(() => setSaving(false));
   }
 
@@ -64,14 +66,15 @@ export function ChangePasswordDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Change password</DialogTitle>
+            <DialogTitle>{t("miscUiChangePassword")}</DialogTitle>
             <DialogDescription>
-              The username is fixed as <b>ARTEX</b>. Enter the current password to verify; login tokens issued before the change stay valid until they expire.
+              {t("miscUiChangePasswordDescPre")} <b>ARTEX</b>
+              {t("miscUiChangePasswordDescPost")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 py-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cp-old">Current password</Label>
+              <Label htmlFor="cp-old">{t("miscUiCurrentPassword")}</Label>
               <Input
                 id="cp-old"
                 type="password"
@@ -82,7 +85,7 @@ export function ChangePasswordDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cp-new">New password</Label>
+              <Label htmlFor="cp-new">{t("newPassword")}</Label>
               <Input
                 id="cp-new"
                 type="password"
@@ -93,7 +96,7 @@ export function ChangePasswordDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="cp-confirm">Confirm new password</Label>
+              <Label htmlFor="cp-confirm">{t("miscUiConfirmNewPassword")}</Label>
               <Input
                 id="cp-confirm"
                 type="password"
@@ -106,10 +109,10 @@ export function ChangePasswordDialog({
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Changing…" : "Confirm change"}
+              {saving ? t("miscUiChanging") : t("miscUiConfirmChange")}
             </Button>
           </DialogFooter>
         </form>

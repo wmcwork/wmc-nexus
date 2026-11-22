@@ -1,40 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
+
 import { PlayIcon, PlusIcon, RotateCcwIcon, SaveIcon, SearchIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import type { Agent, Tool } from "@/lib/types";
 
 // Traffic tools are host tools gated by the global traffic capture switch: bindable, but
@@ -64,7 +48,8 @@ function toRows(schema: Record<string, any>): ParamRow[] {
     const type = String(p?.type ?? "");
     const hasDefault = p != null && "default" in p && (p as Record<string, unknown>).default != null;
     rows.push({
-      name, type,
+      name,
+      type,
       required: required.has(name),
       description: String(p?.description ?? ""),
       defaultStr: hasDefault ? String((p as Record<string, unknown>).default) : "",
@@ -81,7 +66,8 @@ function toRows(schema: Record<string, any>): ParamRow[] {
           const subType = String((subP as Record<string, unknown>)?.type ?? "");
           const subHasDefault = subP != null && "default" in subP && subP.default != null;
           rows.push({
-            name: subName, type: subType,
+            name: subName,
+            type: subType,
             required: itemRequired.has(subName),
             description: String(subP?.description ?? ""),
             defaultStr: subHasDefault ? String(subP.default) : "",
@@ -154,6 +140,7 @@ function ToolEditor({
   onSaved: () => void;
   onClose: () => void;
 }) {
+  const { t } = useLocale();
   // traffic tools can't be bound/enabled until the global traffic capture switch is on.
   const trafficGated = TRAFFIC_TOOL_KEYS.has(tool.key) && !captureOn;
   const [description, setDescription] = React.useState(tool.description);
@@ -164,8 +151,7 @@ function ToolEditor({
 
   const setRow = (i: number, patch: Partial<ParamRow>) =>
     setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
-  const toggleAgent = (k: string) =>
-    setBound((b) => (b.includes(k) ? b.filter((x) => x !== k) : [...b, k]));
+  const toggleAgent = (k: string) => setBound((b) => (b.includes(k) ? b.filter((x) => x !== k) : [...b, k]));
 
   async function save() {
     setSaving(true);
@@ -176,11 +162,11 @@ function ToolEditor({
         agents: bound,
         enabled,
       });
-      toast.success(`Tool "${tool.key}" saved`);
+      toast.success(`${tool.key} ${t("toolsUiSavedSuffix")}`);
       onSaved();
       onClose();
     } catch (e) {
-      toast.error("Save failed: " + (e as Error).message);
+      toast.error(t("saveFailed") + ": " + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -188,11 +174,11 @@ function ToolEditor({
   async function reset() {
     try {
       await api.resetTool(tool.key);
-      toast.success(`Restored "${tool.key}" to the code default`);
+      toast.success(`${tool.key} ${t("toolsUiRestoredToDefault")}`);
       onSaved();
       onClose();
     } catch (e) {
-      toast.error("Restore failed: " + (e as Error).message);
+      toast.error(t("toolsUiRestoreFailed") + ": " + (e as Error).message);
     }
   }
 
@@ -201,13 +187,15 @@ function ToolEditor({
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4">
         {trafficGated && (
           <div className="border-amber-500/40 bg-amber-500/10 text-muted-foreground rounded-md border px-3 py-2 text-xs">
-            This tool depends on <b>traffic capture</b>. Enable traffic capture under "System settings" first before binding it to agents and enabling it.
+            {t("toolsUiTrafficGateBefore")}
+            <b>{t("toolsUiTrafficCapture")}</b>
+            {t("toolsUiTrafficGateAfter")}
           </div>
         )}
         {/* binding + switch */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <div className="grid gap-1.5">
-            <Label className="text-muted-foreground text-xs">Bind agents (controls which agents get this tool)</Label>
+            <Label className="text-muted-foreground text-xs">{t("toolsUiBindAgents")}</Label>
             <div className="flex flex-wrap gap-3">
               {agents.map((ag) => (
                 <label key={ag.key} className="flex items-center gap-2 text-sm">
@@ -220,20 +208,20 @@ function ToolEditor({
                   <span className="text-muted-foreground font-mono text-xs">{ag.key}</span>
                 </label>
               ))}
-              {agents.length === 0 && <span className="text-muted-foreground text-xs">(no agents)</span>}
+              {agents.length === 0 && <span className="text-muted-foreground text-xs">{t("toolsUiNoAgents")}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Switch checked={enabled} onCheckedChange={setEnabled} id={`en-${tool.key}`} />
             <Label htmlFor={`en-${tool.key}`} className="text-sm">
-              Enable
+              {t("toolsUiEnable")}
             </Label>
           </div>
         </div>
 
         {/* description */}
         <div className="grid gap-1.5">
-          <Label className="text-muted-foreground text-xs">Tool description (sent to the model)</Label>
+          <Label className="text-muted-foreground text-xs">{t("toolsUiToolDescription")}</Label>
           <Textarea
             className="font-mono text-xs"
             rows={6}
@@ -244,16 +232,13 @@ function ToolEditor({
 
         {/* params */}
         <div className="grid gap-2">
-          <Label className="text-muted-foreground text-xs">
-            Parameters (name / type / required are read-only; description and default are editable)
-          </Label>
-          {rows.length === 0 && <span className="text-muted-foreground text-xs">(no parameters)</span>}
+          <Label className="text-muted-foreground text-xs">{t("toolsUiParamsHelp")}</Label>
+          {rows.length === 0 && <span className="text-muted-foreground text-xs">{t("toolsUiNoParams")}</span>}
           {rows.map((r, i) => (
             <div
               key={(r.parentKey ?? "") + "." + r.name}
-              className={r.parentKey
-                ? "border-l-2 border-muted ml-3 pl-3 grid gap-2 py-2"
-                : "grid gap-2 rounded-md border p-3"
+              className={
+                r.parentKey ? "border-l-2 border-muted ml-3 pl-3 grid gap-2 py-2" : "grid gap-2 rounded-md border p-3"
               }
             >
               <div className="flex flex-wrap items-center gap-2">
@@ -264,16 +249,14 @@ function ToolEditor({
                 </Badge>
                 {r.required && (
                   <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                    Required
+                    {t("toolsUiRequiredBadge")}
                   </Badge>
                 )}
-                {r.parentKey && (
-                  <span className="text-muted-foreground text-[10px]">items sub-field</span>
-                )}
+                {r.parentKey && <span className="text-muted-foreground text-[10px]">{t("toolsUiItemsSubfield")}</span>}
               </div>
               <div className="grid gap-2">
                 <div className="grid gap-1">
-                  <Label className="text-muted-foreground text-[11px]">Description</Label>
+                  <Label className="text-muted-foreground text-[11px]">{t("description")}</Label>
                   <Input
                     className="text-xs"
                     value={r.description}
@@ -281,10 +264,10 @@ function ToolEditor({
                   />
                 </div>
                 <div className="grid gap-1">
-                  <Label className="text-muted-foreground text-[11px]">Default</Label>
+                  <Label className="text-muted-foreground text-[11px]">{t("dashboardDefault")}</Label>
                   <Input
                     className="text-xs"
-                    placeholder={r.scalar ? "(empty = no default)" : "scalars only"}
+                    placeholder={r.scalar ? t("toolsUiEmptyNoDefault") : t("toolsUiScalarsOnly")}
                     disabled={!r.scalar}
                     value={r.defaultStr}
                     onChange={(e) => setRow(i, { defaultStr: e.target.value })}
@@ -299,10 +282,10 @@ function ToolEditor({
       <Separator className="mt-4" />
       <div className="flex flex-wrap gap-2 p-4">
         <Button size="sm" onClick={save} disabled={saving}>
-          <SaveIcon /> Save
+          <SaveIcon /> {t("save")}
         </Button>
         <Button size="sm" variant="outline" onClick={reset}>
-          <RotateCcwIcon /> Restore defaults
+          <RotateCcwIcon /> {t("toolsUiRestoreDefaults")}
         </Button>
       </div>
     </div>
@@ -311,6 +294,7 @@ function ToolEditor({
 
 // ToolGridCard is one clickable tile in the catalog grid.
 function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
+  const { t } = useLocale();
   return (
     <button
       type="button"
@@ -321,37 +305,35 @@ function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
         <span className="font-mono text-sm font-medium">{tool.key}</span>
         {tool.system ? (
           <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
-            System
+            {t("toolsUiSystemBadge")}
           </Badge>
         ) : (
           <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-            Custom · {tool.kind}
+            {t("agentUiCustom")} · {tool.kind}
           </Badge>
         )}
         {tool.deferred && (
           <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-            deferred
+            {t("toolsUiDeferredBadge")}
           </Badge>
         )}
         {!tool.enabled && (
           <Badge variant="outline" className="text-destructive px-1.5 py-0 text-[10px]">
-            Disabled
+            {t("agentUiDisabled")}
           </Badge>
         )}
         <Badge
           variant="secondary"
           className="ml-auto px-1.5 py-0 text-[10px] tabular-nums"
-          title={`${tool.calls ?? 0} calls in total`}
+          title={`${tool.calls ?? 0} ${t("toolsUiCallsInTotal")}`}
         >
-          {tool.calls ?? 0} calls
+          {tool.calls ?? 0} {t("calls")}
         </Badge>
       </div>
-      <p className="text-muted-foreground line-clamp-1 h-4 text-xs">
-        {tool.description || "(no description)"}
-      </p>
+      <p className="text-muted-foreground line-clamp-1 h-4 text-xs">{tool.description || t("toolsUiNoDescription")}</p>
       <div className="mt-auto flex flex-wrap gap-1 pt-1">
         {tool.agents.length === 0 && (
-          <span className="text-muted-foreground text-[10px]">(no agents bound)</span>
+          <span className="text-muted-foreground text-[10px]">{t("toolsUiNoAgentsBound")}</span>
         )}
         {tool.agents.map((a) => (
           <Badge key={a} variant="outline" className="px-1.5 py-0 text-[10px]">
@@ -364,6 +346,7 @@ function ToolGridCard({ tool, onClick }: { tool: Tool; onClick: () => void }) {
 }
 
 export default function ToolsPage() {
+  const { t } = useLocale();
   const [tools, setTools] = React.useState<Tool[]>([]);
   const [agents, setAgents] = React.useState<Agent[]>([]);
   const [captureOn, setCaptureOn] = React.useState(false);
@@ -371,26 +354,38 @@ export default function ToolsPage() {
   const [customEdit, setCustomEdit] = React.useState<Tool | "new" | null>(null);
 
   const reload = React.useCallback(() => {
-    api.tools().then(setTools).catch(() => setTools([]));
+    api
+      .tools()
+      .then(setTools)
+      .catch(() => setTools([]));
   }, []);
   React.useEffect(() => {
     reload();
-    api.agents().then(setAgents).catch(() => {});
-    api.settings().then((s) => setCaptureOn(!!s.traffic_capture)).catch(() => {});
+    api
+      .agents()
+      .then(setAgents)
+      .catch(() => {});
+    api
+      .settings()
+      .then((s) => setCaptureOn(!!s.traffic_capture))
+      .catch(() => {});
   }, [reload]);
 
   const [query, setQuery] = React.useState("");
 
   const selected = tools.find((t) => t.key === selectedKey) ?? null;
-  const matchTool = React.useCallback((t: Tool) => {
-    const q = query.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      t.key.toLowerCase().includes(q) ||
-      t.description.toLowerCase().includes(q) ||
-      t.agents.some((a) => a.toLowerCase().includes(q))
-    );
-  }, [query]);
+  const matchTool = React.useCallback(
+    (t: Tool) => {
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        t.key.toLowerCase().includes(q) ||
+        t.description.toLowerCase().includes(q) ||
+        t.agents.some((a) => a.toLowerCase().includes(q))
+      );
+    },
+    [query],
+  );
   const systemTools = tools.filter((t) => t.system && matchTool(t));
   const customTools = tools.filter((t) => !t.system && matchTool(t));
   const allSystemCount = tools.filter((t) => t.system).length;
@@ -402,14 +397,14 @@ export default function ToolsPage() {
     <div className="flex flex-1 flex-col gap-4 md:gap-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Tools</h1>
-          <p className="text-muted-foreground text-sm">Descriptions/bindings for system tools, plus custom tools (command/script/http)</p>
+          <h1 className="text-xl font-semibold tracking-tight">{t("navTools")}</h1>
+          <p className="text-muted-foreground text-sm">{t("toolsUiPageDescriptionTools")}</p>
         </div>
         <div className="relative w-64">
           <SearchIcon className="text-muted-foreground absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2" />
           <Input
             className="h-8 pl-8 text-sm"
-            placeholder="Search tool name, description, agent…"
+            placeholder={t("toolsUiSearchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -418,24 +413,24 @@ export default function ToolsPage() {
 
       <Tabs defaultValue="system">
         <TabsList>
-          <TabsTrigger value="system">System tools</TabsTrigger>
-          <TabsTrigger value="custom">Custom tools</TabsTrigger>
+          <TabsTrigger value="system">{t("toolsUiSystemTools")}</TabsTrigger>
+          <TabsTrigger value="custom">{t("toolsUiCustomTools")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="system">
           <Card>
             <CardHeader>
-              <CardTitle>System tools</CardTitle>
+              <CardTitle>{t("toolsUiSystemTools")}</CardTitle>
               <CardDescription>
                 {query.trim()
-                  ? `${systemTools.length} / ${allSystemCount} matching; click a card to edit the description, parameter defaults and agent bindings`
-                  : `${allSystemCount} total; click a card to edit the description, parameter defaults and agent bindings`}
+                  ? `${systemTools.length} / ${allSystemCount} ${t("toolsUiSystemMatchingSuffix")}`
+                  : `${allSystemCount} ${t("toolsUiSystemTotalSuffix")}`}
               </CardDescription>
             </CardHeader>
             <CardContent>
               {systemTools.length === 0 ? (
                 <p className="text-muted-foreground py-6 text-center text-sm">
-                  {query.trim() ? "No matching system tools" : "(no system tools yet, waiting for the backend seed)"}
+                  {query.trim() ? t("toolsUiNoMatchingSystemTools") : t("toolsUiNoSystemTools")}
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -453,22 +448,22 @@ export default function ToolsPage() {
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <CardTitle>Custom tools</CardTitle>
+                  <CardTitle>{t("toolsUiCustomTools")}</CardTitle>
                   <CardDescription>
                     {query.trim()
-                      ? `shell/command/script/http, ${customTools.length} / ${allCustomCount} matching; click a card to edit`
-                      : `shell (bash declaration) / command (command template) / script (Python) / http (API), ${allCustomCount} total; click a card to edit`}
+                      ? `${t("toolsUiCustomKindsShort")} ${customTools.length} / ${allCustomCount} ${t("toolsUiCustomMatchingSuffix")}`
+                      : `${t("toolsUiCustomKindsHelp")} ${allCustomCount} ${t("toolsUiCustomTotalSuffix")}`}
                   </CardDescription>
                 </div>
                 <Button size="sm" onClick={() => setCustomEdit("new")}>
-                  <PlusIcon /> Create custom tool
+                  <PlusIcon /> {t("toolsUiCreateCustomTool")}
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {customTools.length === 0 ? (
                 <p className="text-muted-foreground py-6 text-center text-sm">
-                  {query.trim() ? "No matching custom tools" : "(no custom tools yet; click 'Create custom tool' in the top right)"}
+                  {query.trim() ? t("toolsUiNoMatchingCustomTools") : t("toolsUiNoCustomTools")}
                 </p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -483,15 +478,12 @@ export default function ToolsPage() {
       </Tabs>
 
       <Sheet open={!!selected} onOpenChange={(o) => !o && setSelectedKey(null)}>
-        <SheetContent
-          side="right"
-          className="gap-0 p-0 data-[side=right]:w-[30vw] data-[side=right]:sm:max-w-[30vw]"
-        >
+        <SheetContent side="right" className="gap-0 p-0 data-[side=right]:w-[30vw] data-[side=right]:sm:max-w-[30vw]">
           {selected && (
             <>
               <SheetHeader className="px-4">
                 <SheetTitle className="font-mono">{selected.key}</SheetTitle>
-                <SheetDescription>Edit the description, parameter defaults and agent bindings</SheetDescription>
+                <SheetDescription>{t("toolsUiEditSheetDescription")}</SheetDescription>
               </SheetHeader>
               <ToolEditor
                 key={selected.key}
@@ -544,13 +536,22 @@ function CustomToolDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useLocale();
   const isNew = edit === "new";
   const tool = edit && edit !== "new" ? edit : null;
   const [key, setKey] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [kind, setKind] = React.useState<"shell" | "command" | "script" | "http">("shell");
   const [ex, setEx] = React.useState<ExecState>({
-    command: "", code: "", method: "GET", url: "", headers: "", body: "", timeout_ms: "", proxy: "", use_recording_proxy: false,
+    command: "",
+    code: "",
+    method: "GET",
+    url: "",
+    headers: "",
+    body: "",
+    timeout_ms: "",
+    proxy: "",
+    use_recording_proxy: false,
   });
   const [schemaText, setSchemaText] = React.useState("");
   const [bound, setBound] = React.useState<string[]>([]);
@@ -564,18 +565,34 @@ function CustomToolDialog({
   // (re)load form state when opening.
   React.useEffect(() => {
     if (!edit) return;
-    setParamsText(""); setTestResult(null);
+    setParamsText("");
+    setTestResult(null);
     if (edit === "new") {
-      setKey(""); setDescription(""); setKind("shell");
-      setEx({ command: "", code: "", method: "GET", url: "", headers: "", body: "", timeout_ms: "", proxy: "", use_recording_proxy: false });
-      setSchemaText(""); setBound([]); setDeferred(false); setEnabled(true);
+      setKey("");
+      setDescription("");
+      setKind("shell");
+      setEx({
+        command: "",
+        code: "",
+        method: "GET",
+        url: "",
+        headers: "",
+        body: "",
+        timeout_ms: "",
+        proxy: "",
+        use_recording_proxy: false,
+      });
+      setSchemaText("");
+      setBound([]);
+      setDeferred(false);
+      setEnabled(true);
       return;
     }
-    const t = edit;
-    const e = (t.exec ?? {}) as Record<string, unknown>;
-    setKey(t.key);
-    setDescription(t.description);
-    setKind((t.kind as "shell" | "command" | "script" | "http") ?? "shell");
+    const current = edit;
+    const e = (current.exec ?? {}) as Record<string, unknown>;
+    setKey(current.key);
+    setDescription(current.description);
+    setKind((current.kind as "shell" | "command" | "script" | "http") ?? "shell");
     setEx({
       command: String(e.command ?? ""),
       code: String(e.code ?? ""),
@@ -587,54 +604,84 @@ function CustomToolDialog({
       proxy: String(e.proxy ?? ""),
       use_recording_proxy: !!e.use_recording_proxy,
     });
-    setSchemaText(t.schema && Object.keys(t.schema).length ? JSON.stringify(t.schema, null, 2) : "");
-    setBound(t.agents ?? []);
-    setDeferred(!!t.deferred);
-    setEnabled(t.enabled);
+    setSchemaText(current.schema && Object.keys(current.schema).length ? JSON.stringify(current.schema, null, 2) : "");
+    setBound(current.agents ?? []);
+    setDeferred(!!current.deferred);
+    setEnabled(current.enabled);
   }, [edit]);
 
   const toggleAgent = (k: string) => setBound((b) => (b.includes(k) ? b.filter((x) => x !== k) : [...b, k]));
 
   function buildExec(): Record<string, unknown> {
     if (kind === "shell") return {};
-    const t = ex.timeout_ms ? Number(ex.timeout_ms) : undefined;
-    if (kind === "command") return { command: ex.command, timeout_ms: t };
-    if (kind === "script") return { code: ex.code, timeout_ms: t };
+    const timeout = ex.timeout_ms ? Number(ex.timeout_ms) : undefined;
+    if (kind === "command") return { command: ex.command, timeout_ms: timeout };
+    if (kind === "script") return { code: ex.code, timeout_ms: timeout };
     let headers: Record<string, string> = {};
     if (ex.headers.trim()) {
-      try { headers = JSON.parse(ex.headers); } catch { /* validated on save */ }
+      try {
+        headers = JSON.parse(ex.headers);
+      } catch {
+        /* validated on save */
+      }
     }
-    return { method: ex.method, url: ex.url, headers, body: ex.body, timeout_ms: t, proxy: ex.proxy, use_recording_proxy: ex.use_recording_proxy };
+    return {
+      method: ex.method,
+      url: ex.url,
+      headers,
+      body: ex.body,
+      timeout_ms: timeout,
+      proxy: ex.proxy,
+      use_recording_proxy: ex.use_recording_proxy,
+    };
   }
 
   async function save() {
     if (isNew && !/^[a-z][a-z0-9_]*$/.test(key.trim())) {
-      toast.error("key must start with a lowercase letter and contain only lowercase letters/digits/underscores");
+      toast.error(t("toolsUiKeyFormat"));
       return;
     }
     let schema: Record<string, unknown> = {};
     if (schemaText.trim()) {
-      try { schema = JSON.parse(schemaText); } catch { toast.error("Invalid parameter JSON Schema"); return; }
+      try {
+        schema = JSON.parse(schemaText);
+      } catch {
+        toast.error(t("toolsUiInvalidSchema"));
+        return;
+      }
     }
     if (kind === "http" && ex.headers.trim()) {
-      try { JSON.parse(ex.headers); } catch { toast.error("Invalid headers JSON"); return; }
+      try {
+        JSON.parse(ex.headers);
+      } catch {
+        toast.error(t("toolsUiInvalidHeaders"));
+        return;
+      }
     }
     if (kind === "http") {
       const props = (schema as { properties?: Record<string, unknown> }).properties;
       if (!props || Object.keys(props).length === 0) {
-        toast.error("http tools must provide a parameter JSON Schema (with properties; cannot be empty)");
+        toast.error(t("toolsUiHttpSchemaRequired"));
         return;
       }
     }
     setSaving(true);
-    const payload = { description, schema: kind === "shell" ? {} : schema, agents: bound, enabled, kind, exec: buildExec(), deferred: kind === "shell" ? false : deferred };
+    const payload = {
+      description,
+      schema: kind === "shell" ? {} : schema,
+      agents: bound,
+      enabled,
+      kind,
+      exec: buildExec(),
+      deferred: kind === "shell" ? false : deferred,
+    };
     try {
       if (isNew) await api.createCustomTool({ key: key.trim(), ...payload });
       else await api.updateCustomTool(tool!.key, payload);
-      toast.success(isNew ? "Custom tool created" : "Saved");
+      toast.success(isNew ? t("toolsUiCustomToolCreated") : t("findingSaved"));
       onSaved();
     } catch (e) {
-      toast.error("Save failed: " + (e as Error).message);
+      toast.error(t("saveFailed") + ": " + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -643,10 +690,10 @@ function CustomToolDialog({
     if (!tool) return;
     try {
       await api.deleteCustomTool(tool.key);
-      toast.success("Deleted");
+      toast.success(t("statusDeleted"));
       onSaved();
     } catch (e) {
-      toast.error("Delete failed: " + (e as Error).message);
+      toast.error(t("deleteFailed") + ": " + (e as Error).message);
     }
   }
   // runTest dry-runs the CURRENT form (unsaved) with the sample params, so a
@@ -654,10 +701,20 @@ function CustomToolDialog({
   async function runTest() {
     let params: Record<string, unknown> = {};
     if (paramsText.trim()) {
-      try { params = JSON.parse(paramsText); } catch { toast.error("Invalid test parameter JSON"); return; }
+      try {
+        params = JSON.parse(paramsText);
+      } catch {
+        toast.error(t("toolsUiInvalidTestParams"));
+        return;
+      }
     }
     if (kind === "http" && ex.headers.trim()) {
-      try { JSON.parse(ex.headers); } catch { toast.error("Invalid headers JSON"); return; }
+      try {
+        JSON.parse(ex.headers);
+      } catch {
+        toast.error(t("toolsUiInvalidHeaders"));
+        return;
+      }
     }
     setTesting(true);
     setTestResult(null);
@@ -679,81 +736,121 @@ function CustomToolDialog({
         className="flex flex-col gap-0 p-0 data-[side=right]:w-[45vw] data-[side=right]:sm:max-w-[45vw] data-[side=right]:min-w-[480px]"
       >
         <SheetHeader className="px-4">
-          <SheetTitle>{isNew ? "Create custom tool" : `Edit ${tool?.key}`}</SheetTitle>
-          <SheetDescription>shell = a bash environment declaration (name + description only, telling the model bash is available); command/script/http need an execution spec.</SheetDescription>
+          <SheetTitle>
+            {isNew ? t("toolsUiCreateCustomTool") : `${t("toolsUiEditTitlePrefix")} ${tool?.key}`}
+          </SheetTitle>
+          <SheetDescription>{t("toolsUiCustomToolHelp")}</SheetDescription>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           <div className="grid gap-1.5">
-            <Label className="text-xs">Key</Label>
-            <Input className="font-mono" placeholder="e.g. nmap_scan" value={key} disabled={!isNew}
-              onChange={(e) => setKey(e.target.value)} />
+            <Label className="text-xs">{t("toolsUiKey")}</Label>
+            <Input
+              className="font-mono"
+              placeholder={t("toolsUiKeyPlaceholder")}
+              value={key}
+              disabled={!isNew}
+              onChange={(e) => setKey(e.target.value)}
+            />
           </div>
           <div className="grid gap-1.5">
-            <Label className="text-xs">Description (sent to the model)</Label>
+            <Label className="text-xs">{t("toolsUiDescriptionSentToModel")}</Label>
             <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
           <div className="grid gap-1.5">
-            <Label className="text-xs">Type</Label>
+            <Label className="text-xs">{t("taskUiType")}</Label>
             <Select value={kind} onValueChange={(v) => setKind(v as "shell" | "command" | "script" | "http")}>
-              <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="shell">shell (bash environment declaration)</SelectItem>
-                <SelectItem value="command">command (shell command template)</SelectItem>
-                <SelectItem value="script">script (Python script)</SelectItem>
-                <SelectItem value="http">http (API request)</SelectItem>
+                <SelectItem value="shell">{t("toolsUiKindShell")}</SelectItem>
+                <SelectItem value="command">{t("toolsUiKindCommand")}</SelectItem>
+                <SelectItem value="script">{t("toolsUiKindScript")}</SelectItem>
+                <SelectItem value="http">{t("toolsUiKindHttp")}</SelectItem>
               </SelectContent>
             </Select>
-            {kind === "shell" && (
-              <p className="text-muted-foreground text-xs">Suited to well-known tools like nmap, sqlmap, ffuf — the model already knows their usage; you only need to declare "can be invoked in bash". The name + description are appended to the Bash tool's description.</p>
-            )}
+            {kind === "shell" && <p className="text-muted-foreground text-xs">{t("toolsUiShellHelp")}</p>}
           </div>
 
           {kind === "command" && (
             <div className="grid gap-1.5">
-              <Label className="text-xs">Command template (placeholder {"{param}"}, e.g. nmap -p {"{ports}"} {"{target}"})</Label>
-              <Textarea className="font-mono text-xs" rows={2} value={ex.command}
-                onChange={(e) => setEx({ ...ex, command: e.target.value })} />
+              <Label className="text-xs">{t("toolsUiCommandTemplate")}</Label>
+              <Textarea
+                className="font-mono text-xs"
+                rows={2}
+                value={ex.command}
+                onChange={(e) => setEx({ ...ex, command: e.target.value })}
+              />
             </div>
           )}
           {kind === "script" && (
             <div className="grid gap-1.5">
-              <Label className="text-xs">Python body (params arrive via stdin JSON / os.environ["TOOL_X"])</Label>
-              <Textarea className="font-mono text-xs" rows={10} value={ex.code}
-                placeholder={'import json,sys\nargs=json.load(sys.stdin)\nprint(...)'}
-                onChange={(e) => setEx({ ...ex, code: e.target.value })} />
+              <Label className="text-xs">{t("toolsUiPythonBody")}</Label>
+              <Textarea
+                className="font-mono text-xs"
+                rows={10}
+                value={ex.code}
+                placeholder={"import json,sys\nargs=json.load(sys.stdin)\nprint(...)"}
+                onChange={(e) => setEx({ ...ex, code: e.target.value })}
+              />
             </div>
           )}
           {kind === "http" && (
             <div className="grid gap-2">
               <div className="flex gap-2">
                 <div className="grid gap-1.5">
-                  <Label className="text-xs">Method</Label>
-                  <Input className="w-24" value={ex.method} onChange={(e) => setEx({ ...ex, method: e.target.value })} />
+                  <Label className="text-xs">{t("assetsMethod")}</Label>
+                  <Input
+                    className="w-24"
+                    value={ex.method}
+                    onChange={(e) => setEx({ ...ex, method: e.target.value })}
+                  />
                 </div>
                 <div className="grid flex-1 gap-1.5">
-                  <Label className="text-xs">URL (may contain {"{param}"})</Label>
-                  <Input className="font-mono text-xs" value={ex.url} onChange={(e) => setEx({ ...ex, url: e.target.value })} />
+                  <Label className="text-xs">{t("toolsUiUrlHelp")}</Label>
+                  <Input
+                    className="font-mono text-xs"
+                    value={ex.url}
+                    onChange={(e) => setEx({ ...ex, url: e.target.value })}
+                  />
                 </div>
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-xs">Headers (JSON, may contain {"{param}"})</Label>
-                <Textarea className="font-mono text-xs" rows={2} value={ex.headers}
-                  placeholder={'{"Authorization": "Bearer {token}"}'} onChange={(e) => setEx({ ...ex, headers: e.target.value })} />
+                <Label className="text-xs">{t("toolsUiHeadersHelp")}</Label>
+                <Textarea
+                  className="font-mono text-xs"
+                  rows={2}
+                  value={ex.headers}
+                  placeholder={'{"Authorization": "Bearer {token}"}'}
+                  onChange={(e) => setEx({ ...ex, headers: e.target.value })}
+                />
               </div>
               <div className="grid gap-1.5">
-                <Label className="text-xs">Body (may contain {"{param}"})</Label>
-                <Textarea className="font-mono text-xs" rows={2} value={ex.body} onChange={(e) => setEx({ ...ex, body: e.target.value })} />
+                <Label className="text-xs">{t("toolsUiBodyHelp")}</Label>
+                <Textarea
+                  className="font-mono text-xs"
+                  rows={2}
+                  value={ex.body}
+                  onChange={(e) => setEx({ ...ex, body: e.target.value })}
+                />
               </div>
               <div className="flex items-center gap-4">
                 <div className="grid gap-1.5">
-                  <Label className="text-xs">Proxy URL (empty = direct)</Label>
-                  <Input className="font-mono text-xs w-56" value={ex.proxy} onChange={(e) => setEx({ ...ex, proxy: e.target.value })} />
+                  <Label className="text-xs">{t("toolsUiProxyUrl")}</Label>
+                  <Input
+                    className="font-mono text-xs w-56"
+                    value={ex.proxy}
+                    onChange={(e) => setEx({ ...ex, proxy: e.target.value })}
+                  />
                 </div>
                 <label className="mt-4 flex items-center gap-2 text-sm">
-                  <Checkbox checked={ex.use_recording_proxy} onCheckedChange={(v) => setEx({ ...ex, use_recording_proxy: !!v })} />
-                  Use recording proxy
+                  <Checkbox
+                    checked={ex.use_recording_proxy}
+                    onCheckedChange={(v) => setEx({ ...ex, use_recording_proxy: !!v })}
+                  />
+                  {t("toolsUiUseRecordingProxy")}
                 </label>
               </div>
             </div>
@@ -762,8 +859,13 @@ function CustomToolDialog({
           {kind !== "shell" && (
             <div className="flex items-center gap-3">
               <div className="grid gap-1.5">
-                <Label className="text-xs">Timeout (ms, empty = default)</Label>
-                <Input type="number" className="w-32" value={ex.timeout_ms} onChange={(e) => setEx({ ...ex, timeout_ms: e.target.value })} />
+                <Label className="text-xs">{t("toolsUiTimeoutLabel")}</Label>
+                <Input
+                  type="number"
+                  className="w-32"
+                  value={ex.timeout_ms}
+                  onChange={(e) => setEx({ ...ex, timeout_ms: e.target.value })}
+                />
               </div>
             </div>
           )}
@@ -771,21 +873,27 @@ function CustomToolDialog({
           {kind !== "shell" && (
             <div className="grid gap-1.5">
               <Label className="text-xs">
-                Parameter JSON Schema{kind === "http" ? " (required for http tools, must include properties)" : " (empty = a thin {args} shell is generated automatically)"}
+                {t("toolsUiParamSchema")}
+                {kind === "http" ? t("toolsUiParamSchemaHttp") : t("toolsUiParamSchemaAuto")}
               </Label>
-              <Textarea className="font-mono text-xs" rows={4} value={schemaText}
+              <Textarea
+                className="font-mono text-xs"
+                rows={4}
+                value={schemaText}
                 placeholder={'{"type":"object","properties":{"target":{"type":"string"}},"required":["target"]}'}
-                onChange={(e) => setSchemaText(e.target.value)} />
+                onChange={(e) => setSchemaText(e.target.value)}
+              />
             </div>
           )}
 
           <div className="grid gap-1.5">
-            <Label className="text-muted-foreground text-xs">Bind agents</Label>
+            <Label className="text-muted-foreground text-xs">{t("toolsUiBindAgentsLabel")}</Label>
             <div className="flex flex-wrap gap-3">
               {agents.map((a) => (
                 <label key={a.key} className="flex items-center gap-2 text-sm">
                   <Checkbox checked={bound.includes(a.key)} onCheckedChange={() => toggleAgent(a.key)} />
-                  {a.name}<span className="text-muted-foreground font-mono text-xs">{a.key}</span>
+                  {a.name}
+                  <span className="text-muted-foreground font-mono text-xs">{a.key}</span>
                 </label>
               ))}
             </div>
@@ -793,24 +901,28 @@ function CustomToolDialog({
 
           <div className="flex items-center gap-6">
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={enabled} onCheckedChange={setEnabled} /> Enable
+              <Switch checked={enabled} onCheckedChange={setEnabled} /> {t("toolsUiEnable")}
             </label>
             {kind !== "shell" && (
               <label className="flex items-center gap-2 text-sm">
-                <Switch checked={deferred} onCheckedChange={setDeferred} /> deferred (enable only for many rarely-used tools)
+                <Switch checked={deferred} onCheckedChange={setDeferred} /> {t("toolsUiDeferredHelp")}
               </label>
             )}
           </div>
 
           {kind !== "shell" && (
             <div className="grid gap-1.5 rounded-md border p-3">
-              <Label className="text-xs font-medium">Test run (uses the current form, nothing is saved)</Label>
-              <Textarea className="font-mono text-xs" rows={2} value={paramsText}
-                placeholder={'Sample params JSON, e.g. {"target":"example.com"}'}
-                onChange={(e) => setParamsText(e.target.value)} />
+              <Label className="text-xs font-medium">{t("toolsUiTestRunHelp")}</Label>
+              <Textarea
+                className="font-mono text-xs"
+                rows={2}
+                value={paramsText}
+                placeholder={t("toolsUiSampleParams")}
+                onChange={(e) => setParamsText(e.target.value)}
+              />
               <div>
                 <Button size="sm" variant="outline" onClick={runTest} disabled={testing}>
-                  <PlayIcon /> {testing ? "Running…" : "Test run"}
+                  <PlayIcon /> {testing ? t("toolsUiTestRunning") : t("toolsUiTestRun")}
                 </Button>
               </div>
               {testResult && (
@@ -820,7 +932,7 @@ function CustomToolDialog({
                     (testResult.is_error ? "text-destructive" : "")
                   }
                 >
-                  {testResult.output || "(no output)"}
+                  {testResult.output || t("toolsUiNoOutput")}
                 </pre>
               )}
             </div>
@@ -830,11 +942,11 @@ function CustomToolDialog({
         <Separator />
         <div className="flex items-center gap-2 p-4">
           <Button size="sm" onClick={save} disabled={saving}>
-            <SaveIcon /> {isNew ? "Create" : "Save"}
+            <SaveIcon /> {isNew ? t("create") : t("save")}
           </Button>
           {!isNew && (
             <Button size="sm" variant="outline" className="text-destructive" onClick={del}>
-              <Trash2Icon /> Delete
+              <Trash2Icon /> {t("delete")}
             </Button>
           )}
         </div>

@@ -16,16 +16,21 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import type { FindingRetest } from "@/lib/types";
 
-const statusLabels = {
-  pending: "Waiting to start",
-  running: "Retesting",
-  completed: "Completed",
-  failed: "Retest failed",
-  stopped: "Stopped",
-};
-const verdictLabels = { reproduced: "Still reproducible", fixed: "Fixed", inconclusive: "Inconclusive" };
+const STATUS_LABEL_KEYS = {
+  pending: "dataUiRetestPending",
+  running: "dataUiRetestRunning",
+  completed: "dataUiRetestCompleted",
+  failed: "dataUiRetestFailed",
+  stopped: "dataUiRetestStopped",
+} as const;
+const VERDICT_LABEL_KEYS = {
+  reproduced: "dataUiVerdictReproduced",
+  fixed: "statusFixed",
+  inconclusive: "dataUiVerdictInconclusive",
+} as const;
 
 function active(r: FindingRetest) {
   return r.status === "pending" || r.status === "running";
@@ -42,6 +47,7 @@ export function FindingRetestPanel({
   readOnly?: boolean;
   onCompleted?: () => void;
 }) {
+  const { t } = useLocale();
   const [items, setItems] = React.useState<FindingRetest[] | null>(null);
   const [error, setError] = React.useState("");
   const [open, setOpen] = React.useState(false);
@@ -84,21 +90,21 @@ export function FindingRetestPanel({
     <Card>
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1.5">
-          <CardTitle>Vulnerability retest</CardTitle>
-          <CardDescription>Verifies the current state in a separate session, keeping each retest's verdict and evidence.</CardDescription>
+          <CardTitle>{t("dataUiRetestTitle")}</CardTitle>
+          <CardDescription>{t("dataUiRetestPanelDescription")}</CardDescription>
         </div>
         {running?.conversation_id != null ? (
           <Button asChild variant="outline" size="sm">
-            <Link href={`/chat?c=${running.conversation_id}`} title="View the running retest session">
+            <Link href={`/chat?c=${running.conversation_id}`} title={t("dataUiViewRunningRetest")}>
               <Spinner data-icon="inline-start" aria-hidden="true" />
-              Retesting
+              {t(STATUS_LABEL_KEYS.running)}
             </Link>
           </Button>
         ) : null}
         {!running && !readOnly ? (
           <Button size="sm" onClick={() => setOpen(true)} disabled={items === null || !!error}>
             <RotateCcwIcon data-icon="inline-start" />
-            Start retest
+            {t("dataUiStartRetest")}
           </Button>
         ) : null}
       </CardHeader>
@@ -106,9 +112,9 @@ export function FindingRetestPanel({
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>
-              Failed to load retest records: {error}
+              {t("dataUiRetestLoadFailed")}: {error}
               <Button variant="outline" size="sm" onClick={() => void load()}>
-                Retry
+                {t("retry")}
               </Button>
             </AlertDescription>
           </Alert>
@@ -117,8 +123,8 @@ export function FindingRetestPanel({
         {!error && items?.length === 0 ? (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>No retest records</EmptyTitle>
-              <EmptyDescription>Once the fix is deployed, start a retest to compare new and old evidence.</EmptyDescription>
+              <EmptyTitle>{t("dataUiNoRetestRecords")}</EmptyTitle>
+              <EmptyDescription>{t("dataUiNoRetestRecordsHint")}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : null}
@@ -130,18 +136,18 @@ export function FindingRetestPanel({
                     variant={item.status === "completed" && item.verdict === "reproduced" ? "destructive" : "secondary"}
                   >
                     {item.status === "completed" && item.verdict
-                      ? verdictLabels[item.verdict]
-                      : statusLabels[item.status]}
+                      ? t(VERDICT_LABEL_KEYS[item.verdict])
+                      : t(STATUS_LABEL_KEYS[item.status])}
                   </Badge>
                   <span className="text-muted-foreground text-xs">
                     #{item.id} · {new Date(item.created_at).toLocaleString("zh-CN")}
                   </span>
                   {item.conversation_id != null ? (
                     <Button asChild variant="ghost" size="sm" className="ml-auto">
-                      <Link href={`/chat?c=${item.conversation_id}`}>View session</Link>
+                      <Link href={`/chat?c=${item.conversation_id}`}>{t("dataUiViewSession")}</Link>
                     </Button>
                   ) : (
-                    <span className="text-muted-foreground text-xs">Conversation deleted</span>
+                    <span className="text-muted-foreground text-xs">{t("dataUiConversationDeleted")}</span>
                   )}
                 </div>
                 {item.status === "completed" && item.summary ? (
@@ -152,12 +158,12 @@ export function FindingRetestPanel({
                 ) : null}
                 {item.notes ? (
                   <p className="whitespace-pre-wrap break-words text-muted-foreground text-xs">
-                    Notes: {item.notes}
+                    {t("dataUiNotesLabel")}: {item.notes}
                   </p>
                 ) : null}
                 {item.status === "completed" && item.evidence ? (
                   <details className="min-w-0">
-                    <summary className="cursor-pointer text-sm">Retest evidence</summary>
+                    <summary className="cursor-pointer text-sm">{t("dataUiRetestEvidence")}</summary>
                     <div className="mt-3 overflow-x-auto">
                       <Markdown text={item.evidence} />
                     </div>

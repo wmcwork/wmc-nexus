@@ -25,24 +25,18 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { SideQuestions } from "@/hooks/use-side-questions";
+import { useLocale } from "@/lib/locale";
 import { cn } from "@/lib/utils";
 
 type ComposerLayout = "inline" | "stacked";
 
-const preparationLabels = {
-  preparing: "Preparing context…",
-  summarizing_history: "Summarizing earlier side Q&A…",
-  compressing_snapshot: "Compressing the side-question context copy…",
-  retrying: "Model context exceeded, shrinking and retrying…",
-  answering: "Answering…",
-};
-
 export function SideQuestionButton({ side }: { side: SideQuestions }) {
+  const { t } = useLocale();
   if (!side.enabled) return null;
   return (
-    <Button variant="outline" size="sm" onClick={() => side.setOpen(true)} title="/btw side question">
+    <Button variant="outline" size="sm" onClick={() => side.setOpen(true)} title={`/btw ${t("chatUiSideQuestion")}`}>
       <MessageCircleQuestionIcon data-icon="inline-start" />
-      Side question
+      {t("chatUiSideQuestion")}
     </Button>
   );
 }
@@ -56,7 +50,15 @@ function SidePanel({
   label: string;
   composerLayout: ComposerLayout;
 }) {
+  const { t } = useLocale();
   const inlineComposer = composerLayout === "inline";
+  const preparationLabels: Record<string, string> = {
+    preparing: t("chatUiPrepPreparing"),
+    summarizing_history: t("chatUiPrepSummarizing"),
+    compressing_snapshot: t("chatUiPrepCompressing"),
+    retrying: t("chatUiPrepRetrying"),
+    answering: t("chatUiPrepAnswering"),
+  };
   const [confirm, setConfirm] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
   const pinned = useRef(true);
@@ -65,13 +67,19 @@ function SidePanel({
   useEffect(() => {
     if (pinned.current && viewport.current) viewport.current.scrollTop = viewport.current.scrollHeight;
   }, [tail?.answer, tail?.id]);
-  const status = { running: "Answering", completed: "Completed", failed: "Failed", cancelled: "Stopped", interrupted: "Interrupted" };
+  const status = {
+    running: t("chatUiStatusAnswering"),
+    completed: t("dashboardCompleted"),
+    failed: t("notifyFailed"),
+    cancelled: t("statusStopped"),
+    interrupted: t("chatUiStatusInterrupted"),
+  };
   return (
-    <section className="flex h-full min-h-0 flex-col bg-background" aria-label="Side question panel">
+    <section className="flex h-full min-h-0 flex-col bg-background" aria-label={t("chatUiSideQuestionPanel")}>
       <div className="flex items-center gap-2 border-b p-3">
         <div className="min-w-0 flex-1">
           <p className="font-medium">
-            Side question <span className="text-muted-foreground">/btw</span>
+            {t("chatUiSideQuestion")} <span className="text-muted-foreground">/btw</span>
           </p>
           <p className="truncate text-muted-foreground text-xs">{label}</p>
         </div>
@@ -80,11 +88,11 @@ function SidePanel({
           size="icon-sm"
           onClick={() => setConfirm(true)}
           disabled={!side.items.length || side.busy}
-          aria-label="Clear side-question history"
+          aria-label={t("chatUiClearHistoryAria")}
         >
           <Trash2Icon />
         </Button>
-        <Button variant="ghost" size="icon-sm" onClick={() => side.setOpen(false)} aria-label="Close side-question panel">
+        <Button variant="ghost" size="icon-sm" onClick={() => side.setOpen(false)} aria-label={t("chatUiClosePanel")}>
           <XIcon />
         </Button>
       </div>
@@ -92,10 +100,12 @@ function SidePanel({
         {side.snapshot ? (
           <>
             <p>{side.snapshot.model.model}</p>
-            <p>Context updated {new Date(side.snapshot.captured_at).toLocaleString()}</p>
+            <p>
+              {t("chatUiContextUpdated")} {new Date(side.snapshot.captured_at).toLocaleString()}
+            </p>
           </>
         ) : (
-          "Ask anytime after the main agent's first run"
+          t("chatUiAskAfterFirstRun")
         )}
       </div>
       <div
@@ -108,15 +118,15 @@ function SidePanel({
       >
         {side.nextCursor > 0 && (
           <Button variant="ghost" size="sm" onClick={() => void side.load(side.nextCursor)}>
-            Load earlier side Q&A
+            {t("chatUiLoadEarlierSideQa")}
           </Button>
         )}
         {side.loading && <Skeleton className="h-16 w-full" />}
         {!side.loading && side.items.length === 0 && (
           <Empty>
             <EmptyHeader>
-              <EmptyTitle>Ask a question anytime</EmptyTitle>
-              <EmptyDescription>Answered from the current agent's context while the main task keeps running.</EmptyDescription>
+              <EmptyTitle>{t("chatUiAskAnytime")}</EmptyTitle>
+              <EmptyDescription>{t("chatUiAskAnytimeDescription")}</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
@@ -128,14 +138,14 @@ function SidePanel({
                 <Badge variant="secondary">{status[item.status]}</Badge>
                 <span className="truncate">{item.model.model}</span>
                 <time dateTime={item.snapshot_at} title={new Date(item.snapshot_at).toLocaleString()}>
-                  Context {new Date(item.snapshot_at).toLocaleTimeString()}
+                  {t("chatUiContextLabel")} {new Date(item.snapshot_at).toLocaleTimeString()}
                 </time>
               </div>
               {item.context?.estimated_input_tokens != null && (
                 <p className="text-muted-foreground text-xs">
-                  Last {item.context.recent_exchanges} Q&A exchanges verbatim
-                  {item.context.history_summarized && " · earlier Q&A summarized"}
-                  {item.context.snapshot_summarized && " · uses the main-context digest"}
+                  {t("chatUiLastExchangesPrefix")} {item.context.recent_exchanges} {t("chatUiLastExchangesSuffix")}
+                  {item.context.history_summarized && ` ${t("chatUiEarlierSummarized")}`}
+                  {item.context.snapshot_summarized && ` ${t("chatUiUsesMainDigest")}`}
                 </p>
               )}
               {item.answer && <Markdown text={item.answer} />}
@@ -163,8 +173,8 @@ function SidePanel({
           <InputGroupTextarea
             rows={1}
             className={cn("overflow-y-auto", inlineComposer ? "max-h-40 min-h-0" : "max-h-36 min-h-9")}
-            aria-label="Side question"
-            placeholder="Ask about the current context…"
+            aria-label={t("chatUiSideQuestion")}
+            placeholder={t("chatUiAskPlaceholder")}
             value={side.draft}
             maxLength={4000}
             disabled={side.busy}
@@ -177,14 +187,14 @@ function SidePanel({
             }}
           />
           <InputGroupAddon align={inlineComposer ? "inline-end" : "block-end"}>
-            {!inlineComposer && <span className="text-muted-foreground text-xs">Standalone Q&A · No tool execution</span>}
+            {!inlineComposer && <span className="text-muted-foreground text-xs">{t("chatUiStandalone")}</span>}
             {side.running ? (
               <InputGroupButton
                 className="ml-auto"
                 variant="destructive"
                 size="icon-xs"
                 onClick={() => void side.stop()}
-                aria-label="Stop the side answer"
+                aria-label={t("chatUiStopAnswer")}
               >
                 <SquareIcon />
               </InputGroupButton>
@@ -195,7 +205,7 @@ function SidePanel({
                 size="icon-xs"
                 onClick={() => void side.ask(side.draft)}
                 disabled={side.busy || !side.draft.trim() || !side.snapshot?.available}
-                aria-label="Send side question"
+                aria-label={t("taskTabSessionsSendSideQuestion")}
               >
                 <ArrowUpIcon />
               </InputGroupButton>
@@ -204,19 +214,17 @@ function SidePanel({
         </InputGroup>
       </div>
       {inlineComposer && (
-        <div className="shrink-0 truncate px-3 pt-0.5 pb-1 text-muted-foreground text-xs">Standalone Q&A · No tool execution</div>
+        <div className="shrink-0 truncate px-3 pt-0.5 pb-1 text-muted-foreground text-xs">{t("chatUiStandalone")}</div>
       )}
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Clear side-question history?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Deletes this agent's side Q&A and stops any answer still being generated. The main session and context snapshot are kept.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("chatUiClearHistoryTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("chatUiClearHistoryDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void side.clear()}>Clear history</AlertDialogAction>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void side.clear()}>{t("chatUiClearHistory")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -235,6 +243,7 @@ export function SideQuestionWorkspace({
   children: ReactNode;
   composerLayout?: ComposerLayout;
 }) {
+  const { t } = useLocale();
   const mobile = useIsMobile();
   return (
     <>
@@ -254,8 +263,10 @@ export function SideQuestionWorkspace({
       <Drawer open={mobile && side.open && side.enabled} onOpenChange={side.setOpen}>
         <DrawerContent className="h-[85svh]">
           <DrawerHeader className="sr-only">
-            <DrawerTitle>Side question</DrawerTitle>
-            <DrawerDescription>Standalone Q&A for {label}</DrawerDescription>
+            <DrawerTitle>{t("chatUiSideQuestion")}</DrawerTitle>
+            <DrawerDescription>
+              {t("chatUiStandaloneFor")} {label}
+            </DrawerDescription>
           </DrawerHeader>
           <SidePanel side={side} label={label} composerLayout={composerLayout} />
         </DrawerContent>

@@ -27,11 +27,12 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
+import { setVisibleInterval } from "@/lib/polling";
 import type { LLMPoolMember, LLMPoolStatus, LLMProfile, LLMRetryOverride } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { ProfileRetryFields, RetryPolicyPanel, ZERO_OVERRIDE } from "./_components/retry";
-import { setVisibleInterval } from "@/lib/polling";
 
 // The thinking switch (thinking.type) and the thinking effort (reasoning_effort) are two [independent] fields,
 // each set on its own — some APIs have no thinking field and activate thinking via the effort parameter alone, hence the decoupling.
@@ -40,30 +41,31 @@ import { setVisibleInterval } from "@/lib/polling";
 const NONE = "none";
 const fromStore = (v?: string) => (v ? v : NONE);
 const toStore = (v: string) => (v === NONE ? "" : v);
-const THINKING_TYPES: { value: string; label: string }[] = [
-  { value: NONE, label: "Not sent (default)" },
-  { value: "disabled", label: "Disabled" },
-  { value: "enabled", label: "Enabled" },
+// An option whose display text is either a translation key (labelKey) or a raw technical value (label).
+type Option = { value: string; label?: string; labelKey?: TranslationKey };
+const THINKING_TYPES: Option[] = [
+  { value: NONE, labelKey: "llmUiNotSentDefault" },
+  { value: "disabled", labelKey: "llmUiDisabled" },
+  { value: "enabled", labelKey: "llmUiEnabled" },
 ];
 // Which request field name carries the output cap (only meaningful for the openai format). NONE ↔ "" shares the same sentinel conversion.
-const MAX_TOKENS_FIELDS: { value: string; label: string }[] = [
-  { value: NONE, label: "max_tokens (default)" },
+const MAX_TOKENS_FIELDS: Option[] = [
+  { value: NONE, labelKey: "llmUiMaxTokensDefault" },
   { value: "max_completion_tokens", label: "max_completion_tokens" },
 ];
 // The other formats hard-code their field names, so the option is meaningless for them; the hint texts spell this out.
-const MAX_TOKENS_FIELD_HINTS: Record<string, string> = {
-  openai:
-    "Which key carries the cap. max_tokens is the default and the vast majority of compatible gateways only accept it; OpenAI's official reasoning models (the o series / GPT-5) conversely only accept max_completion_tokens and fail outright with unsupported_parameter when they receive max_tokens.",
-  anthropic: "Only selectable for the openai format. Anthropic's field name is fixed as max_tokens.",
-  "openai-responses": "Only selectable for the openai format. The Responses API's field name is fixed as max_output_tokens.",
-  ollama: "Only selectable for the openai format. Ollama's field name is fixed as max_tokens.",
+const MAX_TOKENS_FIELD_HINTS: Record<string, TranslationKey> = {
+  openai: "llmUiCapHintOpenai",
+  anthropic: "llmUiCapHintAnthropic",
+  "openai-responses": "llmUiCapHintResponses",
+  ollama: "llmUiCapHintOllama",
 };
 // LLM profile formats. The default in the create form is "anthropic"; "ollama" is the
 // keyless local-server format (base URL defaults to http://127.0.0.1:11434/v1).
 type ProfileFormat = "anthropic" | "openai" | "openai-responses" | "ollama";
 const OLLAMA_DEFAULT_BASE_URL = "http://127.0.0.1:11434/v1";
-const EFFORT_LEVELS: { value: string; label: string }[] = [
-  { value: NONE, label: "Not sent (default)" },
+const EFFORT_LEVELS: Option[] = [
+  { value: NONE, labelKey: "llmUiNotSentDefault" },
   { value: "low", label: "low" },
   { value: "medium", label: "medium" },
   { value: "high", label: "high" },
@@ -71,39 +73,39 @@ const EFFORT_LEVELS: { value: string; label: string }[] = [
   { value: "max", label: "max" },
 ];
 
-function cooldownText(secs: number) {
+function cooldownText(secs: number, t: (key: TranslationKey) => string) {
   if (secs <= 0) return "";
-  if (secs < 60) return `${secs}s`;
-  return `${Math.ceil(secs / 60)}min`;
+  if (secs < 60) return `${secs}${t("llmUiUnitSeconds")}`;
+  return `${Math.ceil(secs / 60)}${t("llmUiUnitMinutes")}`;
 }
 
 // The "healthy or not" badge a profile shows on its card. A profile without a Key cannot send any request at all — say that before the breaker;
 // the exception is Ollama, a keyless local server that IS callable without a key. The other states come from the pool's breaker
 // records (with polling off no new records appear, so "healthy" = no known failure).
 type Health = { label: string; cls: string; hint?: string };
-function healthOf(p: LLMProfile, m?: LLMPoolMember): Health {
+function healthOf(p: LLMProfile, m: LLMPoolMember | undefined, t: (key: TranslationKey) => string): Health {
   if (!p.api_key_hint && p.format !== "ollama") {
     return {
-      label: "No Key configured",
+      label: t("llmUiNoKeyConfigured"),
       cls: "border-muted-foreground/40 text-muted-foreground",
-      hint: "No API Key set; cannot be called",
+      hint: t("llmUiNoKeyHint"),
     };
   }
   if (m?.state === "tripped") {
     return {
-      label: m.cooldown_secs > 0 ? `Tripped · ${cooldownText(m.cooldown_secs)}` : "Tripped",
+      label: m.cooldown_secs > 0 ? `${t("llmUiTripped")} · ${cooldownText(m.cooldown_secs, t)}` : t("llmUiTripped"),
       cls: "border-destructive/50 text-destructive",
       hint: m.last_error,
     };
   }
   if (m?.state === "degraded") {
     return {
-      label: `Degraded · failed ${m.fails} times`,
+      label: `${t("llmUiDegraded")} · ${t("llmUiFailed")} ${m.fails} ${t("llmUiTimes")}`,
       cls: "border-amber-500/50 text-amber-600 dark:text-amber-400",
       hint: m.last_error,
     };
   }
-  return { label: "Healthy", cls: "border-emerald-500/50 text-emerald-600 dark:text-emerald-400" };
+  return { label: t("llmUiHealthy"), cls: "border-emerald-500/50 text-emerald-600 dark:text-emerald-400" };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -122,6 +124,7 @@ function PoolSheet({
   onReload: () => Promise<void>;
 }) {
   const [busy, setBusy] = React.useState(false);
+  const { t } = useLocale();
 
   // The cooldown countdown is the remaining seconds computed by the backend — fetched on a timer only while the drawer is open and some profile is unhealthy, to keep it ticking.
   React.useEffect(() => {
@@ -137,12 +140,12 @@ function PoolSheet({
       await api.setSettings(patch);
       await onReload();
       if (patch.llm_pool_enabled !== undefined) {
-        toast.success(patch.llm_pool_enabled ? "LLM pool enabled" : "LLM pool disabled");
+        toast.success(patch.llm_pool_enabled ? t("llmUiPoolEnabledToast") : t("llmUiPoolDisabledToast"));
       } else {
-        toast.success("Fallback settings updated");
+        toast.success(t("llmUiFallbackUpdated"));
       }
     } catch (e) {
-      toast.error(`Failed to apply settings: ${(e as Error).message}`);
+      toast.error(`${t("llmUiApplySettingsFailed")} ${(e as Error).message}`);
     } finally {
       setBusy(false);
     }
@@ -152,9 +155,9 @@ function PoolSheet({
     try {
       await api.resetLLMPool(id);
       await onReload();
-      toast.success(id ? "Profile recovered" : "All profiles recovered");
+      toast.success(id ? t("llmUiProfileRecovered") : t("llmUiAllRecovered"));
     } catch (e) {
-      toast.error(`Recovery failed: ${(e as Error).message}`);
+      toast.error(`${t("llmUiRecoveryFailed")} ${(e as Error).message}`);
     }
   }
 
@@ -169,25 +172,26 @@ function PoolSheet({
       <SheetContent side="right" className="flex flex-col gap-0 p-0 data-[side=right]:sm:max-w-lg">
         <SheetHeader className="px-4">
           <SheetTitle className="flex items-center gap-2">
-            <ZapIcon className="size-4" /> LLM Pool · Failover
+            <ZapIcon className="size-4" /> {t("llmUiPoolTitle")}
           </SheetTitle>
           <SheetDescription>
-            When enabled, an Agent <b>without a pinned model</b> automatically fails over to the next config when the current one is unusable (insufficient balance / dead Key / rate limiting /
-            service error).
+            {t("llmUiPoolDescBefore")}
+            <b>{t("llmUiPoolDescBold")}</b>
+            {t("llmUiPoolDescAfter")}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-6">
           <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
             <div className="grid gap-0.5">
-              <Label className="text-sm">Enable pool</Label>
-              <p className="text-muted-foreground text-xs">Off by default. When off, only the active profile is ever used and a failure stays a failure.</p>
+              <Label className="text-sm">{t("llmUiEnablePool")}</Label>
+              <p className="text-muted-foreground text-xs">{t("llmUiEnablePoolHelp")}</p>
             </div>
             <Switch
               checked={enabled}
               disabled={busy}
               onCheckedChange={(v) => void toggle({ llm_pool_enabled: v })}
-              aria-label="LLM pool toggle"
+              aria-label={t("llmUiPoolToggleAria")}
             />
           </div>
 
@@ -195,17 +199,14 @@ function PoolSheet({
             <>
               <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
                 <div className="grid gap-0.5">
-                  <Label className="text-sm">Also fall back when a pinned config fails</Label>
-                  <p className="text-muted-foreground text-xs">
-                    Off by default: when an Agent or task pins a config, only that config is used and a failure stays a failure (no silent switch to another model).
-                    When enabled, a failing pinned config also falls back to the pool chain below.
-                  </p>
+                  <Label className="text-sm">{t("llmUiBindFallback")}</Label>
+                  <p className="text-muted-foreground text-xs">{t("llmUiBindFallbackHelp")}</p>
                 </div>
                 <Switch
                   checked={pool?.bind_fallback ?? false}
                   disabled={busy}
                   onCheckedChange={(v) => void toggle({ llm_pool_bind_fallback: v })}
-                  aria-label="Bound-config failure fallback toggle"
+                  aria-label={t("llmUiBindFallbackAria")}
                 />
               </div>
 
@@ -213,17 +214,16 @@ function PoolSheet({
 
               <div className="grid gap-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm">Pool order</Label>
+                  <Label className="text-sm">{t("llmUiPoolOrder")}</Label>
                   {tripped.length > 0 && (
                     <Button size="sm" variant="ghost" onClick={() => void recover()}>
-                      <RotateCcwIcon /> Recover all
+                      <RotateCcwIcon /> {t("llmUiRecoverAll")}
                     </Button>
                   )}
                 </div>
                 {inChain.length < 2 && (
                   <p className="text-muted-foreground text-xs">
-                    Only {inChain.length} usable profile(s) right now, so the pool has no effect — at least 2 usable profiles (API Key set, or Ollama) with pool participation are
-                    required.
+                    {t("llmUiPoolNeedsBefore")} {inChain.length} {t("llmUiPoolNeedsAfter")}
                   </p>
                 )}
                 {chain.map((m) => {
@@ -245,24 +245,28 @@ function PoolSheet({
                         <span className="font-medium">{m.name}</span>
                         {m.active && (
                           <Badge variant="outline" className="border-amber-400/50 text-amber-500">
-                            Active
+                            {t("llmUiActive")}
                           </Badge>
                         )}
-                        {excluded && <Badge variant="outline">Excluded from pool</Badge>}
+                        {excluded && <Badge variant="outline">{t("llmUiExcludedFromPool")}</Badge>}
                         <div className="ml-auto flex items-center gap-2">
                           {m.state === "tripped" && m.cooldown_secs > 0 && (
-                            <span className="text-muted-foreground text-xs">Cooldown {cooldownText(m.cooldown_secs)}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {t("llmUiCooldown")} {cooldownText(m.cooldown_secs, t)}
+                            </span>
                           )}
                           {m.state === "degraded" && (
-                            <span className="text-muted-foreground text-xs">{m.fails} consecutive failures</span>
+                            <span className="text-muted-foreground text-xs">
+                              {m.fails} {t("llmUiConsecutiveFailures")}
+                            </span>
                           )}
                           {m.state !== "ok" && (
                             <Button
                               size="icon"
                               variant="ghost"
                               className="size-7"
-                              aria-label="Recover now"
-                              title="Recover now: clears the breaker so the next call retries this profile"
+                              aria-label={t("llmUiRecoverNow")}
+                              title={t("llmUiRecoverNowTitle")}
                               onClick={() => void recover(m.profile_id)}
                             >
                               <RotateCcwIcon className="size-3.5" />
@@ -272,7 +276,11 @@ function PoolSheet({
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 pl-7 text-muted-foreground text-xs">
                         <code className="truncate font-mono">{m.model}</code>
-                        {!m.active && <span>Priority {m.priority}</span>}
+                        {!m.active && (
+                          <span>
+                            {t("llmUiPriority")} {m.priority}
+                          </span>
+                        )}
                       </div>
                       {m.last_error && (
                         <p className="truncate pl-7 font-mono text-muted-foreground text-xs" title={m.last_error}>
@@ -284,15 +292,13 @@ function PoolSheet({
                 })}
                 {chain.length === 0 && (
                   <div className="rounded-lg border border-dashed p-4 text-center text-muted-foreground text-sm">
-                    No profiles yet
+                    {t("llmUiNoProfilesYet")}
                   </div>
                 )}
               </div>
 
               <div className="rounded-lg border border-dashed p-3 text-muted-foreground text-xs leading-relaxed">
-                The active profile is always first; the rest follow priority from high to low (set per profile). After a failure a profile enters a cooldown (60s → 5min →
-                30min), is skipped while cooling down, and switches back automatically once recovered. Profiles whose context window cannot fit the current request are skipped. Agents
-                and tasks with a pinned model do not join the pool by default.
+                {t("llmUiPoolFooter")}
               </div>
             </>
           )}
@@ -318,6 +324,7 @@ function ProfileSheet({
   onSaved: (id: string) => void;
 }) {
   const isNew = !profile;
+  const { t } = useLocale();
   const [name, setName] = React.useState("");
   const [format, setFormat] = React.useState<ProfileFormat>("anthropic");
   const [model, setModel] = React.useState("");
@@ -398,12 +405,12 @@ function ProfileSheet({
       if (r.ok && r.models && r.models.length > 0) {
         setModels(r.models);
         setModelsOpen(true);
-        toast.success(`Loaded ${r.models.length} models`);
+        toast.success(`${r.models.length} ${t("llmUiModelsLoaded")}`);
       } else {
-        toast.error(`Failed to load models: ${r.error ?? "no models returned"}`);
+        toast.error(`${t("llmUiModelsLoadFailed")} ${r.error ?? t("llmUiNoModelsReturned")}`);
       }
     } catch (e) {
-      toast.error(`Error loading models: ${(e as Error).message}`);
+      toast.error(`${t("llmUiModelsLoadError")} ${(e as Error).message}`);
     } finally {
       setLoadingModels(false);
     }
@@ -430,12 +437,12 @@ function ProfileSheet({
       );
       // Show the reply too: only when the model demonstrably spoke is this the same as working inside a session.
       if (r.ok)
-        toast.success(`Connected · ${r.latency_ms ?? "?"}ms · ${r.model ?? model}`, {
-          description: r.reply ? `Reply: ${r.reply}` : undefined,
+        toast.success(`${t("llmUiConnected")} · ${r.latency_ms ?? "?"}ms · ${r.model ?? model}`, {
+          description: r.reply ? `${t("llmUiReply")} ${r.reply}` : undefined,
         });
-      else toast.error(`Connection failed: ${r.error ?? "unknown"}`);
+      else toast.error(`${t("llmUiConnectionFailed")} ${r.error ?? t("llmUiUnknown")}`);
     } catch (e) {
-      toast.error(`Test error: ${(e as Error).message}`);
+      toast.error(`${t("llmUiTestError")} ${(e as Error).message}`);
     } finally {
       setTesting(false);
     }
@@ -443,7 +450,7 @@ function ProfileSheet({
 
   async function save() {
     if (!name.trim() || !model.trim()) {
-      toast.error("Please fill in a name and a model");
+      toast.error(t("llmUiNameModelRequired"));
       return;
     }
     if (saving) return;
@@ -473,12 +480,12 @@ function ProfileSheet({
         user_agent: userAgent.trim(),
         retry,
       });
-      if (isNew) toast.success(`Created: ${name.trim()} (use "Set as active" on its card to enable it)`);
-      else toast.success(profile?.is_default ? "Saved; the active profile takes effect immediately, no restart needed" : "Saved");
+      if (isNew) toast.success(`${t("llmUiCreated")} ${name.trim()} ${t("llmUiCreatedSuffix")}`);
+      else toast.success(profile?.is_default ? t("llmUiSavedActive") : t("llmUiSaved"));
       onSaved(String(id));
       onOpenChange(false);
     } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
+      toast.error(`${t("llmUiSaveFailed")} ${(e as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -486,9 +493,9 @@ function ProfileSheet({
 
   let keyPlaceholder = "sk-…";
   if (format === "ollama") {
-    keyPlaceholder = "optional — a local Ollama server runs keyless";
+    keyPlaceholder = t("llmUiKeyPlaceholderOllama");
   } else if (keyHint) {
-    keyPlaceholder = `Set (${keyHint}); leave empty to keep it`;
+    keyPlaceholder = `${t("llmUiKeyPlaceholderSet")} (${keyHint})${t("llmUiKeyPlaceholderSetSuffix")}`;
   }
 
   return (
@@ -499,49 +506,45 @@ function ProfileSheet({
       >
         <SheetHeader className="px-4">
           <SheetTitle className="flex items-center gap-2">
-            {isNew ? "New model profile" : `Edit: ${profile?.name}`}
+            {isNew ? t("llmUiNewProfile") : `${t("llmUiEditTitle")}: ${profile?.name}`}
             {profile?.is_default && (
               <Badge variant="outline" className="border-amber-400/50 text-amber-500">
-                Active
+                {t("llmUiActive")}
               </Badge>
             )}
           </SheetTitle>
-          <SheetDescription>
-            {isNew
-              ? "New profiles are not activated automatically; use 'Set as active' on its card to enable it."
-              : "Click save after editing; saving the active profile takes effect immediately for all agents."}
-          </SheetDescription>
+          <SheetDescription>{isNew ? t("llmUiNewProfileDesc") : t("llmUiEditProfileDesc")}</SheetDescription>
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="grid gap-2">
-              <Label htmlFor="p-name">Name</Label>
+              <Label htmlFor="p-name">{t("llmUiName")}</Label>
               <Input
                 id="p-name"
-                placeholder="e.g. OpenAI production"
+                placeholder={t("llmUiNamePlaceholder")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="grid gap-2">
-              <Label>Format</Label>
+              <Label>{t("llmUiFormat")}</Label>
               <Select value={format} onValueChange={(v) => setFormat(v as ProfileFormat)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a format" />
+                  <SelectValue placeholder={t("llmUiSelectFormat")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="anthropic">Anthropic</SelectItem>
                   <SelectItem value="openai">OpenAI (Chat Completions)</SelectItem>
                   <SelectItem value="openai-responses">OpenAI (Responses API)</SelectItem>
-                  <SelectItem value="ollama">Ollama (local, no key needed)</SelectItem>
+                  <SelectItem value="ollama">Ollama ({t("llmUiOllamaNoKey")})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-model">Model</Label>
+            <Label htmlFor="p-model">{t("llmUiModel")}</Label>
             <div className="flex gap-2">
               <Input
                 id="p-model"
@@ -568,7 +571,7 @@ function ProfileSheet({
                     className="shrink-0"
                     disabled={loadingModels}
                     onClick={loadModels}
-                    title="Load available models from the API"
+                    title={t("llmUiLoadModelsTitle")}
                   >
                     {loadingModels ? <Loader2Icon className="animate-spin" /> : <RefreshCwIcon />}
                   </Button>
@@ -579,17 +582,17 @@ function ProfileSheet({
                       <Input
                         autoFocus
                         className="h-8 border-0 shadow-none focus-visible:ring-0 dark:bg-transparent"
-                        placeholder={`Search ${models.length} models…`}
+                        placeholder={`${t("llmUiSearchModels")} (${models.length})`}
                         value={modelQuery}
                         onChange={(e) => setModelQuery(e.target.value)}
                         spellCheck={false}
-                        aria-label="Search models"
+                        aria-label={t("llmUiSearchModelsAria")}
                       />
                     </div>
                     <div className="max-h-64 overflow-y-auto overscroll-contain p-1">
                       {filteredModels.length === 0 ? (
                         <p className="px-2 py-6 text-center text-muted-foreground text-xs">
-                          No model matches “{modelQuery.trim()}”
+                          {t("llmUiNoModelMatch")} “{modelQuery.trim()}”
                         </p>
                       ) : (
                         filteredModels.map((m) => (
@@ -614,7 +617,7 @@ function ProfileSheet({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-base-url">Base URL (optional)</Label>
+            <Label htmlFor="p-base-url">{t("llmUiBaseUrl")}</Label>
             <Input
               id="p-base-url"
               className="font-mono"
@@ -625,7 +628,7 @@ function ProfileSheet({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-proxy">Proxy (optional)</Label>
+            <Label htmlFor="p-proxy">{t("llmUiProxy")}</Label>
             <Input
               id="p-proxy"
               className="font-mono"
@@ -633,47 +636,43 @@ function ProfileSheet({
               value={proxy}
               onChange={(e) => setProxy(e.target.value)}
             />
-            <p className="text-muted-foreground text-xs">
-              Only outbound LLM requests go through this proxy; http/https/socks5 are supported, optionally with credentials (e.g.
-              socks5://user:pass@host:port — URL-encode the password if it contains special characters). Leave empty for no proxy (direct connection).
-            </p>
+            <p className="text-muted-foreground text-xs">{t("llmUiProxyHelp")}</p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-session-header">Custom session header (optional)</Label>
+            <Label htmlFor="p-session-header">{t("llmUiSessionHeader")}</Label>
             <Input
               id="p-session-header"
               className="font-mono"
-              placeholder="e.g. x-session-id (empty = not sent)"
+              placeholder={t("llmUiSessionHeaderPlaceholder")}
               value={sessionHeaderKey}
               onChange={(e) => setSessionHeaderKey(e.target.value)}
             />
             <p className="text-muted-foreground text-xs">
-              Once a header name is set, every request carries this HTTP header, with the value filled in automatically as the <b>current session's session id</b> (chat sessions like
-              conv-12, workers like exp3-worker-i87). Meant for gateways that do prompt caching /
-              sticky routing on a session-id header; stable across turns of one session, distinct across sessions. Leave empty to not send it.
+              {t("llmUiSessionHeaderHelpBefore")}
+              <b>{t("llmUiSessionHeaderHelpBold")}</b>
+              {t("llmUiSessionHeaderHelpAfter")}
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-user-agent">Custom User-Agent (optional)</Label>
+            <Label htmlFor="p-user-agent">{t("llmUiUserAgent")}</Label>
             <Input
               id="p-user-agent"
               className="font-mono"
-              placeholder="e.g. my-app/1.0 (empty = default UA)"
+              placeholder={t("llmUiUserAgentPlaceholder")}
               value={userAgent}
               onChange={(e) => setUserAgent(e.target.value)}
             />
             <p className="text-muted-foreground text-xs">
-              Overrides the <b>User-Agent</b> header on every outbound LLM request. Useful for gateways that route or allow-list by
-              User-Agent. Leave empty to keep the default User-Agent unchanged.
+              {t("llmUiUserAgentHelpBefore")}
+              <b>User-Agent</b>
+              {t("llmUiUserAgentHelpAfter")}
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="p-api-key">
-              {format === "ollama" ? "API Key (optional for Ollama)" : "API Key"}
-            </Label>
+            <Label htmlFor="p-api-key">{format === "ollama" ? t("llmUiApiKeyOptional") : t("llmUiApiKey")}</Label>
             <Input
               id="p-api-key"
               type="password"
@@ -692,15 +691,15 @@ function ProfileSheet({
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="grid gap-2">
-              <Label htmlFor="p-rps">Rate limit per second</Label>
+              <Label htmlFor="p-rps">{t("llmUiRatePerSecond")}</Label>
               <Input id="p-rps" type="number" min={0} value={rps} onChange={(e) => setRps(e.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="p-rpm">Rate limit per minute</Label>
+              <Label htmlFor="p-rpm">{t("llmUiRatePerMinute")}</Label>
               <Input id="p-rpm" type="number" min={0} value={rpm} onChange={(e) => setRpm(e.target.value)} />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="p-cw">Context window (K)</Label>
+              <Label htmlFor="p-cw">{t("llmUiContextWindow")}</Label>
               <Input
                 id="p-cw"
                 type="number"
@@ -712,20 +711,15 @@ function ProfileSheet({
               />
             </div>
           </div>
-          <p className="-mt-2 text-muted-foreground text-xs">
-            Rate limits of 0 mean unlimited, shared across all agents. The context window is in K (thousand tokens); 0 = the 200K default, capped at 1000 (i.e.
-            1M). Setting it too high keeps compression from ever triggering.
-          </p>
+          <p className="-mt-2 text-muted-foreground text-xs">{t("llmUiRateHelp")}</p>
 
           <div className="grid gap-3 rounded-lg border p-3">
             <div className="flex items-center justify-between gap-4">
               <div className="grid gap-0.5">
                 <Label htmlFor="p-priority" className="text-sm">
-                  Pool priority
+                  {t("llmUiPoolPriority")}
                 </Label>
-                <p className="text-muted-foreground text-xs">
-                  Higher numbers are picked first; the active profile is always first regardless of this value. Profiles with equal priority take turns leading, spreading quota naturally.
-                </p>
+                <p className="text-muted-foreground text-xs">{t("llmUiPoolPriorityHelp")}</p>
               </div>
               <Input
                 id="p-priority"
@@ -737,24 +731,17 @@ function ProfileSheet({
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-3">
               <div className="grid gap-0.5">
-                <Label className="text-sm">Excluded from pool</Label>
-                <p className="text-muted-foreground text-xs">
-                  When enabled, this profile is never used as a failover target (Agents / tasks can still pin it explicitly). Suited to expensive profiles reserved for one specific Agent
-                  that should not be burned through by other agents' failures.
-                </p>
+                <Label className="text-sm">{t("llmUiExcludedFromPool")}</Label>
+                <p className="text-muted-foreground text-xs">{t("llmUiPoolExcludeHelp")}</p>
               </div>
-              <Switch checked={poolExclude} onCheckedChange={setPoolExclude} aria-label="Excluded from pool" />
+              <Switch checked={poolExclude} onCheckedChange={setPoolExclude} aria-label={t("llmUiExcludedFromPool")} />
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-3">
               <div className="grid gap-0.5">
-                <Label className="text-sm">Streaming output</Label>
-                <p className="text-muted-foreground text-xs">
-                  On (default) streams over SSE, with live in-flight progress and real-time token counting. Off uses true non-streaming (stream:false,
-                  returning the full response in one shot) — a way around gateways with broken SSE implementations (empty frames / dropped thinking-field frames),
-                  at the cost of losing live in-flight progress.
-                </p>
+                <Label className="text-sm">{t("llmUiStreamingOutput")}</Label>
+                <p className="text-muted-foreground text-xs">{t("llmUiStreamingHelp")}</p>
               </div>
-              <Switch checked={streaming} onCheckedChange={setStreaming} aria-label="Streaming output" />
+              <Switch checked={streaming} onCheckedChange={setStreaming} aria-label={t("llmUiStreamingOutput")} />
             </div>
           </div>
 
@@ -762,13 +749,9 @@ function ProfileSheet({
             <div className="flex items-center justify-between gap-4">
               <div className="grid gap-0.5">
                 <Label htmlFor="p-max-tokens" className="text-sm">
-                  Output cap · max tokens
+                  {t("llmUiOutputCap")}
                 </Label>
-                <p className="text-muted-foreground text-xs">
-                  How many tokens a single reply may generate at most; sent with every request. 0 (default) = the field is not sent, leaving it to the server default.
-                  This is not the same thing as the "context window" above: that is the model's total capacity, used only locally to compute the compression threshold.
-                  Set it too low and a reasoning model gets truncated mid-thinking, unable to emit even a one-word answer.
-                </p>
+                <p className="text-muted-foreground text-xs">{t("llmUiOutputCapHelp")}</p>
               </div>
               <Input
                 id="p-max-tokens"
@@ -782,8 +765,8 @@ function ProfileSheet({
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-3">
               <div className="grid gap-0.5">
-                <Label className="text-sm">Cap field name</Label>
-                <p className="text-muted-foreground text-xs">{MAX_TOKENS_FIELD_HINTS[format]}</p>
+                <Label className="text-sm">{t("llmUiCapFieldName")}</Label>
+                <p className="text-muted-foreground text-xs">{t(MAX_TOKENS_FIELD_HINTS[format])}</p>
               </div>
               <Select
                 value={format === "openai" ? maxTokensField : NONE}
@@ -796,7 +779,7 @@ function ProfileSheet({
                 <SelectContent>
                   {MAX_TOKENS_FIELDS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                      {o.labelKey ? t(o.labelKey) : o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -807,11 +790,8 @@ function ProfileSheet({
           <div className="grid gap-3 rounded-lg border p-3">
             <div className="flex items-center justify-between gap-4">
               <div className="grid gap-0.5">
-                <Label className="text-sm">Thinking switch · thinking.type</Label>
-                <p className="text-muted-foreground text-xs">
-                  Controls whether the thinking field is sent. Not sent = the field is omitted (compatible with models like MiniMax that lack support); Disabled = send
-                  disabled; Enabled = send enabled. Independent of the effort below.
-                </p>
+                <Label className="text-sm">{t("llmUiThinkingSwitch")}</Label>
+                <p className="text-muted-foreground text-xs">{t("llmUiThinkingHelp")}</p>
               </div>
               <Select value={thinkingType} onValueChange={setThinkingType}>
                 <SelectTrigger className="w-32 shrink-0">
@@ -820,7 +800,7 @@ function ProfileSheet({
                 <SelectContent>
                   {THINKING_TYPES.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                      {o.labelKey ? t(o.labelKey) : o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -828,11 +808,8 @@ function ProfileSheet({
             </div>
             <div className="flex items-center justify-between gap-4 border-t pt-3">
               <div className="grid gap-0.5">
-                <Label className="text-sm">Thinking effort · reasoning_effort</Label>
-                <p className="text-muted-foreground text-xs">
-                  A separate effort knob (OpenAI reasoning_effort / Anthropic output_config.effort). Some APIs have no thinking
-                  field and activate thinking via effort alone, so it can be set on its own without sending the thinking switch.
-                </p>
+                <Label className="text-sm">{t("llmUiThinkingEffort")}</Label>
+                <p className="text-muted-foreground text-xs">{t("llmUiThinkingEffortHelp")}</p>
               </div>
               <Select value={effort} onValueChange={setEffort}>
                 <SelectTrigger className="w-32 shrink-0">
@@ -841,7 +818,7 @@ function ProfileSheet({
                 <SelectContent>
                   {EFFORT_LEVELS.map((o) => (
                     <SelectItem key={o.value} value={o.value}>
-                      {o.label}
+                      {o.labelKey ? t(o.labelKey) : o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -855,12 +832,12 @@ function ProfileSheet({
         <div className="flex gap-2 border-t px-4 py-3">
           <Button variant="outline" onClick={testConnection} disabled={testing}>
             {testing ? <Loader2Icon className="animate-spin" /> : <PlugZapIcon />}
-            {testing ? "Testing…" : "Test connection"}
+            {testing ? t("llmUiTesting") : t("llmUiTestConnection")}
           </Button>
           <Button onClick={save} disabled={saving} className="flex-1">
             {saving && <Loader2Icon className="animate-spin" />}
             {!saving && (isNew ? <PlusIcon /> : <SaveIcon />)}
-            {isNew ? "Create" : "Save"}
+            {isNew ? t("create") : t("save")}
           </Button>
         </div>
       </SheetContent>
@@ -871,6 +848,7 @@ function ProfileSheet({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function LLMPage() {
+  const { t } = useLocale();
   const [profiles, setProfiles] = React.useState<LLMProfile[]>([]);
   const [pool, setPool] = React.useState<LLMPoolStatus | null>(null);
   const [poolOpen, setPoolOpen] = React.useState(false);
@@ -914,24 +892,24 @@ export default function LLMPage() {
   async function activate(id: string, name: string) {
     try {
       await api.activateLLMProfile(id);
-      toast.success(`Activated: ${name}`);
+      toast.success(`${t("llmUiActivated")} ${name}`);
       await load();
     } catch (e) {
-      toast.error(`Activation failed: ${(e as Error).message}`);
+      toast.error(`${t("llmUiActivationFailed")} ${(e as Error).message}`);
     }
   }
 
   async function remove(p: LLMProfile) {
     if (p.is_default) {
-      toast.error("Cannot delete the active profile");
+      toast.error(t("llmUiCannotDeleteActive"));
       return;
     }
     try {
       await api.deleteLLMProfile(p.id);
-      toast.success(`Deleted: ${p.name}`);
+      toast.success(`${t("llmUiDeleted")} ${p.name}`);
       await load();
     } catch (e) {
-      toast.error(`Delete failed: ${(e as Error).message}`);
+      toast.error(`${t("llmUiDeleteFailed")} ${(e as Error).message}`);
     }
   }
 
@@ -942,35 +920,33 @@ export default function LLMPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-semibold text-xl tracking-tight">LLM</h1>
-          <p className="text-muted-foreground text-sm">
-            Format / model / rate-limit settings shared by all agents. Click a card to edit it; the starred card is the active profile.
-          </p>
+          <p className="text-muted-foreground text-sm">{t("llmUiPageSubtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setPoolOpen(true)}>
-            <ZapIcon /> Pool settings
+            <ZapIcon /> {t("llmUiPoolSettings")}
             {poolOn && (
               <Badge variant="outline" className="ml-1 border-emerald-500/50 text-emerald-600 dark:text-emerald-400">
-                On
+                {t("llmUiOn")}
               </Badge>
             )}
           </Button>
           <Button size="sm" variant="outline" onClick={() => openEditor(null)}>
-            <PlusIcon /> Create
+            <PlusIcon /> {t("create")}
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="profiles" className="flex-1">
         <TabsList>
-          <TabsTrigger value="profiles">Model profiles</TabsTrigger>
-          <TabsTrigger value="retry">Retry & backoff</TabsTrigger>
+          <TabsTrigger value="profiles">{t("llmUiModelProfiles")}</TabsTrigger>
+          <TabsTrigger value="retry">{t("llmUiRetryBackoff")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profiles" className="mt-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {profiles.map((p) => {
-              const h = healthOf(p, health.get(p.id));
+              const h = healthOf(p, health.get(p.id), t);
               return (
                 // biome-ignore lint/a11y/useSemanticElements: the card contains its own action buttons; a native <button> would nest buttons (invalid HTML)
                 <Card
@@ -1016,14 +992,26 @@ export default function LLMPage() {
                       <span>
                         {p.rate_per_second}/s · {p.rate_per_minute}/min
                       </span>
-                      {p.proxy && <span className="truncate">Proxy {p.proxy}</span>}
+                      {p.proxy && (
+                        <span className="truncate">
+                          {t("llmUiProxyShort")} {p.proxy}
+                        </span>
+                      )}
                       {p.reasoning_effort && (
-                        <span>Thinking {p.reasoning_effort === "off" ? "off" : p.reasoning_effort}</span>
+                        <span>
+                          {t("llmUiThinking")} {p.reasoning_effort === "off" ? "off" : p.reasoning_effort}
+                        </span>
                       )}
                       {/* The two pool-related fields only matter when the pool is on; when it is off they take no space */}
                       {poolOn &&
                         !p.is_default &&
-                        (p.pool_exclude ? <span>Excluded from pool</span> : <span>Priority {p.priority ?? 0}</span>)}
+                        (p.pool_exclude ? (
+                          <span>{t("llmUiExcludedFromPool")}</span>
+                        ) : (
+                          <span>
+                            {t("llmUiPriority")} {p.priority ?? 0}
+                          </span>
+                        ))}
                     </div>
 
                     <div className="mt-1 flex gap-2">
@@ -1037,12 +1025,12 @@ export default function LLMPage() {
                           void activate(p.id, p.name);
                         }}
                       >
-                        {p.is_default ? "Active" : "Set as active"}
+                        {p.is_default ? t("llmUiActive") : t("llmUiSetAsActive")}
                       </Button>
                       <Button
                         size="icon"
                         variant="outline"
-                        aria-label="Delete profile"
+                        aria-label={t("llmUiDeleteProfile")}
                         onClick={(e) => {
                           e.stopPropagation();
                           void remove(p);
@@ -1057,7 +1045,7 @@ export default function LLMPage() {
             })}
             {profiles.length === 0 && (
               <div className="col-span-full rounded-lg border border-dashed p-10 text-center text-muted-foreground text-sm">
-                No model profiles yet — click "Create" in the top right to add the first one.
+                {t("llmUiEmptyState")}
               </div>
             )}
           </div>

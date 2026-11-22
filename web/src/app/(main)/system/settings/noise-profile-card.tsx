@@ -11,35 +11,34 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
 import type { NoiseProfileName, NoiseStatus } from "@/lib/types";
 
 // Mirrors egress.Profiles in egress/egress.go; the jitter of one send is
 // min(Jitter/RPS, 250 ms).
-const profiles: { value: NoiseProfileName; label: string; limits: string }[] = [
-  { value: "off", label: "Off", limits: "Off: requests and their timing are unchanged, and nothing is counted." },
+const profiles: { value: NoiseProfileName; labelKey: TranslationKey; limitsKey: TranslationKey }[] = [
+  { value: "off", labelKey: "settingsUiNoiseOff", limitsKey: "settingsUiNoiseOffLimits" },
   {
     value: "quiet",
-    label: "Quiet",
-    limits:
-      "2 req/s per host (burst 4), 1 in flight per host, 8 overall, jitter up to 250 ms, identical GETs of a task cached 60 s, up to 3 retries on 429/503.",
+    labelKey: "settingsUiNoiseQuiet",
+    limitsKey: "settingsUiNoiseQuietLimits",
   },
   {
     value: "balanced",
-    label: "Balanced",
-    limits:
-      "5 req/s per host (burst 10), 2 in flight per host, 16 overall, jitter up to 40 ms, identical GETs of a task cached 30 s, up to 3 retries on 429/503.",
+    labelKey: "settingsUiNoiseBalanced",
+    limitsKey: "settingsUiNoiseBalancedLimits",
   },
   {
     value: "aggressive",
-    label: "Aggressive",
-    limits:
-      "20 req/s per host (burst 40), 4 in flight per host, 32 overall, jitter up to 5 ms, identical GETs of a task cached 10 s, up to 2 retries on 429/503.",
+    labelKey: "settingsUiNoiseAggressive",
+    limitsKey: "settingsUiNoiseAggressiveLimits",
   },
 ];
 
 // NoiseProfileCard sets the target noise profile and shows the per-host
 // counters of the current minute.
 export function NoiseProfileCard() {
+  const { t } = useLocale();
   const [status, setStatus] = React.useState<NoiseStatus | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -49,9 +48,9 @@ export function NoiseProfileCard() {
     api
       .noiseStatus()
       .then(setStatus)
-      .catch((e) => toast.error(`Failed to load the noise counters: ${(e as Error).message}`))
+      .catch((e) => toast.error(t("settingsUiNoiseLoadFailed") + ": " + (e as Error).message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
   React.useEffect(() => {
     refresh();
   }, [refresh]);
@@ -61,10 +60,11 @@ export function NoiseProfileCard() {
     api
       .setSettings({ noise_profile: value })
       .then(() => {
-        toast.success(`Noise profile set to ${value}`);
+        const label = t(profiles.find((p) => p.value === value)?.labelKey ?? "settingsUiNoiseOff");
+        toast.success(t("settingsUiNoiseSetTo") + ": " + label);
         refresh();
       })
-      .catch((e) => toast.error(`Save failed: ${(e as Error).message}`))
+      .catch((e) => toast.error(t("saveFailed") + ": " + (e as Error).message))
       .finally(() => setSaving(false));
   };
 
@@ -74,21 +74,14 @@ export function NoiseProfileCard() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <GaugeIcon className="size-4" />
-          Target noise
+          {t("settingsUiNoiseTitle")}
         </CardTitle>
-        <CardDescription>
-          Paces the requests ARTEX itself sends to targets (WebFetch, http custom tools, the enrich probe) and sets the
-          low-and-slow guidance in agent prompts. With traffic capture on, Bash commands that use the proxy (curl,
-          wget, python-requests…) are paced too, by rate and jitter only: the in-flight, cache and retry limits apply
-          to ARTEX's own requests. Raw scanners such as nmap, and commands that bypass the proxy, are not paced; this
-          is best effort, not a security boundary. This setting takes precedence over ARTEX_NOISE_PROFILE and applies
-          to the next request.
-        </CardDescription>
+        <CardDescription>{t("settingsUiNoiseDesc")}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="noise-profile" className="text-sm font-normal text-muted-foreground">
-            Profile
+            {t("llmRecordsProfile")}
           </Label>
           <Select
             value={status?.profile ?? ""}
@@ -96,34 +89,34 @@ export function NoiseProfileCard() {
             onValueChange={(v) => save(v as NoiseProfileName)}
           >
             <SelectTrigger id="noise-profile" className="w-48 shrink-0">
-              <SelectValue placeholder="Loading…" />
+              <SelectValue placeholder={t("taskUiLoading")} />
             </SelectTrigger>
             <SelectContent>
               {profiles.map((p) => (
                 <SelectItem key={p.value} value={p.value}>
-                  {p.label}
+                  {t(p.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <p className="text-muted-foreground text-xs">{current.limits}</p>
+        <p className="text-muted-foreground text-xs">{t(current.limitsKey)}</p>
         <div className="flex items-center justify-between gap-4">
-          <span className="font-medium text-sm">Hosts, current minute</span>
+          <span className="font-medium text-sm">{t("settingsUiNoiseHosts")}</span>
           <Button variant="outline" size="sm" onClick={refresh} disabled={loading}>
             <RefreshCwIcon data-icon="inline-start" className={loading ? "animate-spin" : undefined} />
-            Refresh
+            {t("workspaceRefresh")}
           </Button>
         </div>
         {status?.hosts.length ? (
-          <Table aria-label="Noise counters per host">
+          <Table aria-label={t("settingsUiNoiseTableAria")}>
             <TableHeader>
               <TableRow>
-                <TableHead>Host</TableHead>
-                <TableHead className="text-right">RPM</TableHead>
-                <TableHead className="text-right">Peak RPM</TableHead>
-                <TableHead className="text-right">In flight (peak)</TableHead>
-                <TableHead className="text-right">Duplicates</TableHead>
+                <TableHead>{t("settingsUiHost")}</TableHead>
+                <TableHead className="text-right">{t("settingsUiRpm")}</TableHead>
+                <TableHead className="text-right">{t("settingsUiPeakRpm")}</TableHead>
+                <TableHead className="text-right">{t("settingsUiInFlightPeak")}</TableHead>
+                <TableHead className="text-right">{t("settingsUiDuplicates")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -144,7 +137,7 @@ export function NoiseProfileCard() {
           </Table>
         ) : (
           <p className="text-muted-foreground text-sm">
-            {status?.profile === "off" ? "Off counts no request." : "No paced request yet."}
+            {status?.profile === "off" ? t("settingsUiNoiseOffCounts") : t("settingsUiNoiseNoRequest")}
           </p>
         )}
       </CardContent>

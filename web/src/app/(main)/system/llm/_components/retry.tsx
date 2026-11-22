@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { type TranslationKey, useLocale } from "@/lib/locale";
 import type { LLMRetryOverride, LLMRetryPolicy, LLMRetryRule } from "@/lib/types";
 
 export const ZERO_RULE: LLMRetryRule = { attempts: 0, interval_ms: 0 };
@@ -33,95 +34,89 @@ const ZERO_POLICY: LLMRetryPolicy = {
 };
 
 type LayerMeta = {
-  title: string;
+  title: TranslationKey;
   /** Where this retry layer happens and who runs it */
-  where: string;
+  where: TranslationKey;
   /** Which errors reach this layer — down to status codes, no guessing */
-  trigger: string;
+  trigger: TranslationKey;
   /** Errors that look similar but do [not] go through this layer, so nobody thinks it is a bug after seeing no effect */
-  skips?: string;
-  desc: string;
-  attemptsLabel: string;
+  skips?: TranslationKey;
+  desc: TranslationKey;
+  attemptsLabel: TranslationKey;
   /** Default attempts when left empty, used for the placeholder */
   defAttempts: number;
   /** Default interval strategy when left empty, used for the placeholder */
-  defInterval: string;
+  defInterval: TranslationKey;
   /** Meaning of entering -1 for attempts */
-  offHint: string;
+  offHint: TranslationKey;
 };
 
 export const RETRY_LAYERS = {
   connect: {
-    title: "Connect retry",
-    where: "SDK · before a 200 arrives",
-    trigger:
-      "Cannot connect or no 200 yet: network-layer errors such as connection reset / read-write timeout / DNS failure, plus HTTP 408, 429, 500, 502, 503, 504.",
-    skips: "The remaining status codes (400 / 401 / 403 / 404 / 413 / 422 etc.) are deterministic rejections — resending fails the same way, so they bubble up directly.",
-    desc: "Resends the same request verbatim. Once the stream has started (a 200 was received), a mid-stream drop is no longer this layer's business.",
-    attemptsLabel: "Retry attempts",
+    title: "llmUiRetryConnectTitle",
+    where: "llmUiRetryConnectWhere",
+    trigger: "llmUiRetryConnectTrigger",
+    skips: "llmUiRetryConnectSkips",
+    desc: "llmUiRetryConnectDesc",
+    attemptsLabel: "llmUiRetryAttempts",
     defAttempts: 3,
-    defInterval: "0.5s→1s→2s exponential (capped at 8s)",
-    offHint: "-1 = no retries at all; the failure bubbles up immediately",
+    defInterval: "llmUiRetryExpInterval8",
+    offHint: "llmUiRetryConnectOffHint",
   },
   empty: {
-    title: "Empty-response retry",
-    where: "SDK · openai format only",
-    trigger:
-      "HTTP 200 with a normal stop finish_reason, yet not a single content block in the response — gateway empty frames, dropped thinking-field frames and sampling hiccups all look like this.",
-    skips: "Empty because of max_tokens truncation does not count (fix that by raising the output cap; resending just hits it again).",
-    desc: "Resends the entire prompt, so it is relatively expensive on long contexts; keep the count small.",
-    attemptsLabel: "Retry attempts",
+    title: "llmUiRetryEmptyTitle",
+    where: "llmUiRetryEmptyWhere",
+    trigger: "llmUiRetryEmptyTrigger",
+    skips: "llmUiRetryEmptySkips",
+    desc: "llmUiRetryEmptyDesc",
+    attemptsLabel: "llmUiRetryAttempts",
     defAttempts: 2,
-    defInterval: "0.5s→1s→2s exponential (capped at 8s)",
-    offHint: "-1 = hand the empty response through as-is",
+    defInterval: "llmUiRetryExpInterval8",
+    offHint: "llmUiRetryEmptyOffHint",
   },
   stream: {
-    title: "Same-provider safe-window retry",
-    where: "This project · before any output is delivered",
-    trigger:
-      "Trouble only after the stream is established (a 200 received): mid-stream disconnects, provider overloaded, in-stream 429 / 5xx error events — while not a single token has been handed to the caller yet.",
-    skips:
-      "Quota exhausted (402 / insufficient_quota, handed to the pool to switch configs), context too long (413 / context length, handed to compression), and deterministic rejections (400 / 401 / 403 / 404 / 422) are never retried.",
-    desc: "Replays the same request on the same config. Since no output has been delivered yet, the replay cannot duplicate model output or tool executions.",
-    attemptsLabel: "Retry attempts",
+    title: "llmUiRetryStreamTitle",
+    where: "llmUiRetryStreamWhere",
+    trigger: "llmUiRetryStreamTrigger",
+    skips: "llmUiRetryStreamSkips",
+    desc: "llmUiRetryStreamDesc",
+    attemptsLabel: "llmUiRetryAttempts",
     defAttempts: 2,
-    defInterval: "0.5s→1s exponential (capped at 4s)",
-    offHint: "-1 = a broken stream goes straight to the outer intent rerun",
+    defInterval: "llmUiRetryExpInterval4",
+    offHint: "llmUiRetryStreamOffHint",
   },
   breaker: {
-    title: "Pool breaker",
-    where: "This project · process-level, one global copy",
-    trigger:
-      "Trips when transient failures (429, 5xx, network errors) accumulate consecutively to the threshold; deterministic failures — insufficient balance (402), dead key (401 / 403), missing model (404) — ignore the threshold and trip on the first occurrence.",
-    skips: "One success resets the counter, so an occasionally flaky config is not slowly ground into tripping.",
-    desc: "After tripping it enters cooldown, and while cooling the pool skips the config outright. State is persisted, surviving restarts.",
-    attemptsLabel: "Consecutive failures to trip",
+    title: "llmUiRetryBreakerTitle",
+    where: "llmUiRetryBreakerWhere",
+    trigger: "llmUiRetryBreakerTrigger",
+    skips: "llmUiRetryBreakerSkips",
+    desc: "llmUiRetryBreakerDesc",
+    attemptsLabel: "llmUiBreakerAttempts",
     defAttempts: 3,
-    defInterval: "1min→5min→30min gradient",
-    offHint: "-1 = transient failures never trip (deterministic failures still do)",
+    defInterval: "llmUiRetryCooldownGradient",
+    offHint: "llmUiRetryBreakerOffHint",
   },
   intent: {
-    title: "Intent rerun",
-    where: "This project · process-level, one global copy",
-    trigger:
-      "The earlier layers could not save it: the worker ends with model_error — inner retries all exhausted, or the stream broke only after output delivery had started (when replay is unsafe and only a full rerun works).",
-    skips: "Quota exhaustion is already handled by the pool switching configs and is not rerun here; when the task is paused / aborted / wrapping up it yields immediately, spending no backoff time.",
-    desc: "Reruns the whole intent from scratch. It is the outermost layer, so one rerun multiplies the inner layers' attempt counts once more.",
-    attemptsLabel: "Rerun attempts",
+    title: "llmUiRetryIntentTitle",
+    where: "llmUiRetryIntentWhere",
+    trigger: "llmUiRetryIntentTrigger",
+    skips: "llmUiRetryIntentSkips",
+    desc: "llmUiRetryIntentDesc",
+    attemptsLabel: "llmUiIntentAttempts",
     defAttempts: 2,
-    defInterval: "Fixed 3s",
-    offHint: "-1 = no rerun; the intent is marked blocked outright",
+    defInterval: "llmUiRetryFixed3s",
+    offHint: "llmUiRetryIntentOffHint",
   },
 } satisfies Record<string, LayerMeta>;
 
 type LayerKey = keyof typeof RETRY_LAYERS;
 
 /** Milliseconds in human terms, only echoed next to the input so nobody counts zeros. */
-function humanMs(ms: number) {
+function humanMs(ms: number, t: (key: TranslationKey) => string) {
   if (!Number.isFinite(ms) || ms <= 0) return "";
   if (ms < 1000) return `${ms}ms`;
-  if (ms < 60_000) return `${Number((ms / 1000).toFixed(2))}s`;
-  return `${Number((ms / 60_000).toFixed(2))}min`;
+  if (ms < 60_000) return `${Number((ms / 1000).toFixed(2))}${t("llmUiUnitSeconds")}`;
+  return `${Number((ms / 60_000).toFixed(2))}${t("llmUiUnitMinutes")}`;
 }
 
 /** Controlled numeric input: empty string ↔ 0; intermediate states ("-", "1e") stay local and never bother the parent. */
@@ -177,54 +172,61 @@ export function RetryRuleFields({
   /** true = compact version inside the profile drawer: skips the expanded explanations, keeping only the "which errors reach this layer" line */
   compact?: boolean;
 }) {
+  const { t } = useLocale();
   const meta = RETRY_LAYERS[layer];
-  const human = humanMs(value.interval_ms);
+  const human = humanMs(value.interval_ms, t);
   return (
     <div className={compact ? "grid gap-2" : "grid gap-3 rounded-lg border p-3"}>
       <div className="grid gap-0.5">
         <div className="flex flex-wrap items-baseline gap-2">
-          <Label className="text-sm">{meta.title}</Label>
-          <span className="text-muted-foreground text-xs">{meta.where}</span>
+          <Label className="text-sm">{t(meta.title)}</Label>
+          <span className="text-muted-foreground text-xs">{t(meta.where)}</span>
         </div>
         {/* Which errors reach this layer, down to status codes — if the knobs seem to have no effect, the error most likely does not land on this layer at all. */}
         <p className="text-muted-foreground text-xs">
-          <span className="font-medium text-foreground">Triggers</span>: {meta.trigger}
+          <span className="font-medium text-foreground">{t("llmUiTriggers")}</span>: {t(meta.trigger)}
         </p>
         {!compact && meta.skips && (
           <p className="text-muted-foreground text-xs">
-            <span className="font-medium text-foreground">Skipped here</span>: {meta.skips}
+            <span className="font-medium text-foreground">{t("llmUiSkippedHere")}</span>: {t(meta.skips)}
           </p>
         )}
-        {!compact && <p className="text-muted-foreground text-xs">{meta.desc}</p>}
+        {!compact && <p className="text-muted-foreground text-xs">{t(meta.desc)}</p>}
       </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
           <Label htmlFor={`${idPrefix}-${layer}-n`} className="text-muted-foreground text-xs">
-            {meta.attemptsLabel}
+            {t(meta.attemptsLabel)}
           </Label>
           <NumField
             id={`${idPrefix}-${layer}-n`}
             min={-1}
             value={value.attempts}
-            placeholder={`Default ${meta.defAttempts}`}
+            placeholder={`${t("llmUiDefault")} ${meta.defAttempts}`}
             onChange={(n) => onChange({ ...value, attempts: n })}
           />
         </div>
         <div className="flex items-center gap-2">
           <Label htmlFor={`${idPrefix}-${layer}-ms`} className="text-muted-foreground text-xs">
-            Interval ms
+            {t("llmUiIntervalMs")}
           </Label>
           <NumField
             id={`${idPrefix}-${layer}-ms`}
             min={0}
             value={value.interval_ms}
-            placeholder="Default backoff"
+            placeholder={t("llmUiDefaultBackoff")}
             onChange={(n) => onChange({ ...value, interval_ms: n })}
           />
-          <span className="text-muted-foreground text-xs">{human ? `Fixed ${human}` : meta.defInterval}</span>
+          <span className="text-muted-foreground text-xs">
+            {human ? `${t("llmUiFixed")} ${human}` : t(meta.defInterval)}
+          </span>
         </div>
       </div>
-      {!compact && <p className="text-muted-foreground text-xs">Empty = use the default; {meta.offHint}.</p>}
+      {!compact && (
+        <p className="text-muted-foreground text-xs">
+          {t("llmUiEmptyUseDefault")} {t(meta.offHint)}.
+        </p>
+      )}
     </div>
   );
 }
@@ -237,14 +239,12 @@ export function ProfileRetryFields({
   value: LLMRetryOverride;
   onChange: (o: LLMRetryOverride) => void;
 }) {
+  const { t } = useLocale();
   return (
     <div className="grid gap-3 rounded-lg border p-3">
       <div className="grid gap-0.5">
-        <Label className="text-sm">Retry overrides</Label>
-        <p className="text-muted-foreground text-xs">
-          Applies only to this profile, overriding the global defaults from "Retry & backoff". Each field left empty = follow the global; attempts -1 = disable this layer;
-          a filled interval replaces the exponential backoff with a fixed one. The breaker and intent rerun are process-level and can only be tuned on the global page.
-        </p>
+        <Label className="text-sm">{t("llmUiRetryOverrides")}</Label>
+        <p className="text-muted-foreground text-xs">{t("llmUiRetryOverridesHelp")}</p>
       </div>
       {(["connect", "empty", "stream"] as const).map((k) => (
         <div key={k} className="border-t pt-3 first:border-t-0 first:pt-0">
@@ -263,6 +263,7 @@ export function ProfileRetryFields({
 
 /** The "Retry & backoff" tab: global defaults for the five layers. */
 export function RetryPolicyPanel() {
+  const { t } = useLocale();
   const [policy, setPolicy] = React.useState<LLMRetryPolicy>(ZERO_POLICY);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -273,7 +274,7 @@ export function RetryPolicyPanel() {
       const p = await api.llmRetryPolicy();
       setPolicy({ ...ZERO_POLICY, ...p });
     } catch (e) {
-      toast.error(`Failed to load retry policy: ${(e as Error).message}`);
+      toast.error(`${t("llmUiRetryLoadFailed")} ${(e as Error).message}`);
     } finally {
       setLoading(false);
     }
@@ -290,9 +291,9 @@ export function RetryPolicyPanel() {
       // The backend clamps out-of-range values back into the interval and returns them; refresh straight from the reply so what you see is what is stored.
       const saved = await api.saveLLMRetryPolicy(policy);
       setPolicy({ ...ZERO_POLICY, ...saved });
-      toast.success("Saved; takes effect immediately (calls already in flight still use the old parameters)");
+      toast.success(t("llmUiRetrySaved"));
     } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
+      toast.error(`${t("llmUiSaveFailed")} ${(e as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -303,7 +304,7 @@ export function RetryPolicyPanel() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 rounded-lg border border-dashed p-10 text-muted-foreground text-sm">
-        <Loader2Icon className="size-4 animate-spin" /> Loading retry policy…
+        <Loader2Icon className="size-4 animate-spin" /> {t("llmUiLoadingRetryPolicy")}
       </div>
     );
   }
@@ -311,12 +312,11 @@ export function RetryPolicyPanel() {
   return (
     <div className="grid gap-4">
       <div className="rounded-lg border bg-muted/30 p-3 text-muted-foreground text-xs leading-relaxed">
-        A failed model call passes through five retry layers in turn, innermost to outermost:
-        <span className="text-foreground"> connect → empty response → same-provider safe window → pool breaker → intent rerun</span>
-        . An outer layer only gets what the inner ones exhausted, so the attempt counts
-        <span className="text-foreground">multiply</span>
-        — max out every layer and a single hiccup can burn dozens of requests.
-        Leaving everything empty keeps the current defaults, identical to the behavior before this page existed. The first three layers can be overridden per model profile.
+        {t("llmUiRetryIntroBefore")}
+        <span className="text-foreground">{t("llmUiRetryIntroChain")}</span>
+        {t("llmUiRetryIntroMiddle")}
+        <span className="text-foreground">{t("llmUiRetryIntroMultiply")}</span>
+        {t("llmUiRetryIntroAfter")}
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -328,10 +328,10 @@ export function RetryPolicyPanel() {
       <div className="flex gap-2">
         <Button onClick={save} disabled={saving}>
           {saving ? <Loader2Icon className="animate-spin" /> : <SaveIcon />}
-          Save
+          {t("save")}
         </Button>
         <Button variant="outline" onClick={() => setPolicy(ZERO_POLICY)} disabled={saving}>
-          Reset all to defaults
+          {t("llmUiResetAll")}
         </Button>
       </div>
     </div>

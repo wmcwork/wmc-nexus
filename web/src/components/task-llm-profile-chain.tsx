@@ -20,6 +20,7 @@ import {
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
+import { useLocale } from "@/lib/locale";
 import type { LLMProfile } from "@/lib/types";
 
 interface TaskLLMProfileChainProps {
@@ -36,15 +37,20 @@ interface TaskLLMProfileChainProps {
 }
 
 function ProfileRoleBadge({ index, currentIndex }: { index: number; currentIndex: number }) {
-  if (index === currentIndex) return <Badge variant="default">Current</Badge>;
+  const { t } = useLocale();
+  if (index === currentIndex) return <Badge variant="default">{t("agentUiCurrent")}</Badge>;
   if (index < currentIndex) {
     return (
-      <Badge variant="outline" title="Profiles before the current cursor are not picked by automatic failover">
-        Skipped
+      <Badge variant="outline" title={t("miscUiSkippedProfilesTitle")}>
+        {t("miscUiSkipped")}
       </Badge>
     );
   }
-  return <Badge variant="secondary">Fallback {index - currentIndex}</Badge>;
+  return (
+    <Badge variant="secondary">
+      {t("miscUiFallback")} {index - currentIndex}
+    </Badge>
+  );
 }
 
 export function TaskLLMProfileChain({
@@ -59,6 +65,7 @@ export function TaskLLMProfileChain({
   inputId,
   portalContainer,
 }: TaskLLMProfileChainProps) {
+  const { t } = useLocale();
   const rotationID = React.useId();
   const [workerBinding, setWorkerBinding] = React.useState<number | null>(null);
   const [bindingCheckFailed, setBindingCheckFailed] = React.useState(false);
@@ -79,9 +86,9 @@ export function TaskLLMProfileChain({
   const profileLabel = React.useCallback(
     (id: string) => {
       const profile = profilesByID.get(id);
-      return profile ? `${profile.name} ${profile.model}` : `Profile #${id}`;
+      return profile ? `${profile.name} ${profile.model}` : `${t("miscUiProfile")} #${id}`;
     },
-    [profilesByID],
+    [profilesByID, t],
   );
 
   const move = (index: number, offset: -1 | 1) => {
@@ -110,34 +117,22 @@ export function TaskLLMProfileChain({
       {onRotateChange && (
         <div className="flex flex-col gap-2">
           <label htmlFor={rotationID} className="flex items-center justify-between gap-3 font-medium text-sm">
-            Enable multi-LLM worker rotation
+            {t("miscUiEnableRotation")}
             <Switch id={rotationID} checked={rotate} onCheckedChange={onRotateChange} disabled={disabled} />
           </label>
           <p className="text-muted-foreground text-xs">
-            {rotate
-              ? "New worker intents use the selected profiles in round-robin order. Independent workers can run on different providers simultaneously. Other roles keep the current profile."
-              : "Ordered failover: workers share the current profile and switch after quota exhaustion or repeated provider failures."}
+            {rotate ? t("miscUiRotationOnHelp") : t("miscUiRotationOffHelp")}
           </p>
-          {rotate && value.length < 2 && (
-            <p className="text-amber-600 text-xs">Select at least two profiles to distribute work across providers.</p>
-          )}
+          {rotate && value.length < 2 && <p className="text-amber-600 text-xs">{t("miscUiRotationMinProfiles")}</p>}
           {rotate && workerBinding != null && (
             <p role="alert" className="text-amber-600 text-xs">
-              Worker has a fixed model binding, which overrides rotation. Set Worker’s model to follow the task in Agent
-              settings to use these profiles.
+              {t("miscUiWorkerFixedBinding")}
             </p>
           )}
           {rotate && bindingCheckFailed && (
-            <p className="text-amber-600 text-xs">
-              Worker binding could not be checked. A fixed Worker model overrides rotation; verify Agent settings.
-            </p>
+            <p className="text-amber-600 text-xs">{t("miscUiWorkerBindingCheckFailed")}</p>
           )}
-          {rotate && (
-            <p className="text-muted-foreground text-xs">
-              Set concurrent worker count to at least 2 in System settings before starting the task. In-flight calls
-              keep their provider. Exhausted profiles are skipped until the chain is reset.
-            </p>
-          )}
+          {rotate && <p className="text-muted-foreground text-xs">{t("miscUiRotationConcurrencyHelp")}</p>}
         </div>
       )}
       <Combobox
@@ -156,12 +151,12 @@ export function TaskLLMProfileChain({
           </ComboboxValue>
           <ComboboxChipsInput
             id={inputId}
-            placeholder={profiles.length > 0 ? "Search and add LLM profiles" : "No LLM profiles available"}
+            placeholder={profiles.length > 0 ? t("miscUiSearchProfiles") : t("miscUiNoProfilesAvailable")}
             disabled={disabled ? true : profilesUnavailable}
           />
         </ComboboxChips>
         <ComboboxContent portalContainer={portalContainer}>
-          <ComboboxEmpty>No matching LLM profiles</ComboboxEmpty>
+          <ComboboxEmpty>{t("miscUiNoMatchingProfiles")}</ComboboxEmpty>
           <ComboboxList>
             {(id) => {
               const profile = profilesByID.get(id);
@@ -170,8 +165,8 @@ export function TaskLLMProfileChain({
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate">
-                        {profile?.name ?? `Profile #${id}`}
-                        {profile?.is_default ? " (active)" : ""}
+                        {profile?.name ?? `${t("miscUiProfile")} #${id}`}
+                        {profile?.is_default ? t("miscUiActiveSuffix") : ""}
                       </span>
                     </span>
                     {profile && <span className="truncate text-muted-foreground text-xs">{profile.model}</span>}
@@ -184,9 +179,7 @@ export function TaskLLMProfileChain({
       </Combobox>
 
       {value.length === 0 ? (
-        <p className="text-muted-foreground text-xs">
-          When no profile is set, the task follows the agent or the global active profile.
-        </p>
+        <p className="text-muted-foreground text-xs">{t("miscUiNoProfileHelp")}</p>
       ) : (
         <div className="flex flex-col divide-y rounded-lg border">
           {value.map((id, index) => {
@@ -198,13 +191,17 @@ export function TaskLLMProfileChain({
               >
                 <span className="w-5 shrink-0 text-center text-muted-foreground text-xs tabular-nums">{index + 1}</span>
                 <div className="min-w-0 sm:flex-1">
-                  <p className="truncate font-medium text-sm">{profile?.name ?? `Profile #${id}`}</p>
+                  <p className="truncate font-medium text-sm">{profile?.name ?? `${t("miscUiProfile")} #${id}`}</p>
                   <div className="flex min-w-0 items-center gap-2">
-                    <p className="truncate text-muted-foreground text-xs">{profile?.model ?? "Profile unavailable"}</p>
+                    <p className="truncate text-muted-foreground text-xs">
+                      {profile?.model ?? t("miscUiProfileUnavailable")}
+                    </p>
                   </div>
                 </div>
                 {rotate ? (
-                  <Badge variant="secondary">Rotation {index + 1}</Badge>
+                  <Badge variant="secondary">
+                    {t("miscUiRotation")} {index + 1}
+                  </Badge>
                 ) : (
                   <ProfileRoleBadge index={index} currentIndex={currentIndex} />
                 )}
@@ -213,7 +210,7 @@ export function TaskLLMProfileChain({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Move profile up"
+                    aria-label={t("miscUiMoveProfileUp")}
                     onClick={() => move(index, -1)}
                     disabled={disabled ? true : index === 0}
                   >
@@ -223,7 +220,7 @@ export function TaskLLMProfileChain({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Move profile down"
+                    aria-label={t("miscUiMoveProfileDown")}
                     onClick={() => move(index, 1)}
                     disabled={disabled ? true : index === value.length - 1}
                   >
@@ -233,7 +230,7 @@ export function TaskLLMProfileChain({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Remove profile"
+                    aria-label={t("miscUiRemoveProfile")}
                     onClick={() => remove(id)}
                     disabled={disabled}
                   >
@@ -248,7 +245,7 @@ export function TaskLLMProfileChain({
 
       {onActiveProfileChange && value.length > 0 && (
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <span className="font-medium text-sm">{rotate ? "Planner / failover profile" : "Current profile"}</span>
+          <span className="font-medium text-sm">{rotate ? t("miscUiPlannerProfile") : t("miscUiCurrentProfile")}</span>
           <Select
             value={activeProfileId && value.includes(activeProfileId) ? activeProfileId : value[0]}
             onValueChange={onActiveProfileChange}
@@ -263,7 +260,7 @@ export function TaskLLMProfileChain({
                   const profile = profilesByID.get(id);
                   return (
                     <SelectItem key={id} value={id} disabled={!profile}>
-                      {profile?.name ?? `Profile #${id}`}
+                      {profile?.name ?? `${t("miscUiProfile")} #${id}`}
                     </SelectItem>
                   );
                 })}

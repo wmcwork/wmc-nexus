@@ -1,0 +1,163 @@
+// Command artex runs the ARTEX backend: the dual PostgreSQL graph stores,
+// the event-driven exploration engine, and the JSON HTTP API consumed by the
+// shadcn/ui frontend.
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"path/filepath"
+	"runtime"
+	"syscall"
+	"time"
+
+	"github.com/Autumn-27/artex/agent"
+	"github.com/Autumn-27/artex/config"
+	"github.com/Autumn-27/artex/server"
+)
+
+// version is the build version, injected at release time via
+// -ldflags "-X main.version=<tag>". Defaults to "dev" for local builds.
+var version = "dev"
+
+// printBanner writes the startup banner + version/runtime info to stdout.
+func printBanner(addr string) {
+	fmt.Println("  WMC NEXUS — AI Security Workbench")
+	fmt.Printf("  version %s  ·  %s/%s  ·  %s  ·  listening on %s\n\n",
+		version, runtime.GOOS, runtime.GOARCH, runtime.Version(), addr)
+}
+
+// main maps run's result onto the process exit code. The body lives in a
+// function that can *return* rather than os.Exit, so its own defers still run.
+func main() {
+	os.Exit(run())
+}
+
+func run() int {
+	var (
+		addr    = flag.String("addr", "127.0.0.1:8787", "HTTP listen address")
+		dataDir = flag.String("data", filepath.Join(config.BaseDir(), "data"), "runtime data directory: traffic index, task files, transcripts (default: data/ next to the executable)")
+		proxy   = flag.String("proxy", "127.0.0.1:8788", "traffic recording proxy address (empty to disable)")
+	)
+	flag.Parse()
+
+	// hand the build version to the server package so GET /api/health can report it
+	// to the frontend top bar.
+	server.BuildVersion = version
+
+	printBanner(*addr)
+
+	// capture backend logs into the in-memory sink (still to stderr) so the /logs
+	// page can show a live log stream. Do this first, to catch startup logs too.
+	server.StartLogCapture()
+
+	// surface which config file the binary reads (absolute, so `go run`'s relative
+	// "config.json" — resolved against the CWD — is unambiguous).
+	cfgPath := config.Path()
+	if abs, e := filepath.Abs(cfgPath); e == nil {
+		cfgPath = abs
+	}
+	if _, e := os.Stat(cfgPath); e == nil {
+		log.Printf("[config] config file: %s", cfgPath)
+	} else {
+		log.Printf("[config] config file: %s (not found — will only try the environment variable ARTEX_PG_DSN)", cfgPath)
+	}
+
+	sigCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	ctx, shutdown := shutdownContext(sigCtx)
+	defer shutdown(agent.AbortShutdown)
+
+	mgr, err := server.NewManager(*dataDir, *proxy)
+	if err != nil {
+		log.Fatalf("open stores: %v", err)
+	}
+	defer mgr.Close()
+
+	skillDir, err := config.SkillDir()
+	if err != nil {
+		log.Printf("[config] %v", err)
+		return 1
+	}
+	if abs, err := filepath.Abs(skillDir); err == nil {
+		skillDir = abs
+	}
+	log.Printf("[config] skill directory: %s", skillDir)
+	// JWT signing key directory (also holds secret.key, see server.NewManager).
+	keyDir := config.KeyDir()
+	log.Printf("[config] JWT key directory: %s", keyDir)
+	// Proxies whose X-Forwarded-For the login rate limit reads; empty trusts none.
+	trusted, err := server.ParseTrustedProxies(os.Getenv("ARTEX_TRUSTED_PROXIES"))
+	if err != nil {
+		log.Printf("[config] ARTEX_TRUSTED_PROXIES: %v", err)
+		return 1
+	}
+	if len(trusted) > 0 {
+		log.Printf("[config] trusted proxies: %v", trusted)
+	}
+	srv := server.New(ctx, mgr, skillDir, *dataDir, keyDir, server.WithSecretScrub(), server.WithTrustedProxies(trusted))
+	// ReadTimeout bounds how long the request headers and body may take to arrive.
+	// It does not limit how long a handler runs, so an event stream stays open.
+	// WriteTimeout is left unset: a write deadline would cut that stream.
+	httpSrv := &http.Server{
+		Addr:              *addr,
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+	}
+
+	go func() {
+		log.Printf("WMC NEXUS %s backend listening on %s (data=%s, workers=%d)", version, *addr, *dataDir, mgr.Workers())
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("serve: %v", err)
+		}
+	}()
+
+	// Wait for a stop signal.
+	<-ctx.Done()
+
+	log.Println("shutting down...")
+	// Close the listener before draining. Otherwise a request accepted during
+	// the drain can start a detached run, and mgr.Close runs while that run
+	// is still writing.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	httpErr := httpSrv.Shutdown(shutdownCtx)
+	cancel()
+	if httpErr != nil {
+		log.Printf("http shutdown: %v", httpErr)
+	}
+	drainCtx, drainCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	drainErr := srv.Wait(drainCtx)
+	drainCancel()
+	if drainErr != nil {
+		log.Printf("task drain: %v", drainErr)
+	}
+	// The health writer flushes on ctx.Done(). Wait for it before the deferred
+	// store close, so the last cooling window is not written at a closed database.
+	srv.FlushLLMHealth()
+	if httpErr != nil || drainErr != nil {
+		return 1
+	}
+	return 0
+}
+
+// shutdownContext deliberately does not derive from signalCtx. If it did, the
+// parent's plain context.Canceled could win the race before AbortShutdown was
+// attached to the child, losing the diagnostic cause in every running Agent.
+func shutdownContext(signalCtx context.Context) (context.Context, context.CancelCauseFunc) {
+	ctx, shutdown := context.WithCancelCause(context.Background())
+	go func() {
+		select {
+		case <-signalCtx.Done():
+			shutdown(agent.AbortShutdown)
+		case <-ctx.Done():
+		}
+	}()
+	return ctx, shutdown
+}

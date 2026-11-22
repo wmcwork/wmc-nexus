@@ -9,6 +9,15 @@ allowed-tools: Read Write
 Makes every claim reproducible and every artefact safe to share. This skill is
 always allowed, including during passive and read-only phases.
 
+## Prohibited actions
+
+- No alteration of raw evidence; hash it before analysis.
+- No unredacted secrets, credentials, or personal data in a report.
+- No out-of-scope data in evidence or findings.
+- No unreproducible or speculative finding presented as confirmed.
+- No sharing outside the approved recipients.
+- No deletion of originals before the retention period ends.
+
 ## Evidence package
 
 Create one directory per engagement and one subdirectory per finding:

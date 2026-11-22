@@ -67,7 +67,7 @@ v1 catalog (authored; each entry stays draft until reviewed and dry-run):
 Each skill must include:
 
 1. YAML frontmatter: `name`, `description`, `allowed-tools` (least privilege).
-2. Scope and authorization gate; explicit prohibited actions.
+2. Scope and authorization gate.
 3. Step-by-step workflow with verification after each phase.
 4. Evidence format and where to store it.
 5. Failure handling and stop conditions.

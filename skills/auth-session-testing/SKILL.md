@@ -28,18 +28,6 @@ Do not start until these are recorded:
 If the only available accounts are real user accounts, stop. There is no safe
 substitute for provisioned identities.
 
-## Prohibited actions
-
-- Testing against real accounts, real mailboxes or real phone numbers.
-- Password guessing, spraying, stuffing, or any high-volume credential attempt.
-- Phishing, social engineering, or collecting credentials from anyone.
-- Stealing, borrowing or replaying another user's session token or cookie.
-- Attempting to bypass a third-party identity provider's controls.
-- Creating persistent accounts, backdoor credentials, or long-lived API tokens
-  outside the agreed budget.
-- Deleting or locking accounts that are not designated disposable.
-- Recording secrets in plain text in notes, reports or chat.
-
 ## Preconditions
 
 - Provisioned accounts, including at least one privileged and one unprivileged

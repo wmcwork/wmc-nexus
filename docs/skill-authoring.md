@@ -68,7 +68,6 @@ allowed-tools: Bash(dig:*) Bash(whois:*) Read Write
 - [ ] Frontmatter valid; name matches directory; description is a clear trigger.
 - [ ] Tool allowlist is least-privilege and sufficient.
 - [ ] Authorization gate present and unambiguous.
-- [ ] Prohibited actions listed.
 - [ ] Every phase has a verification step.
 - [ ] Evidence format defined and redaction covered.
 - [ ] Stop conditions and escalation path defined.

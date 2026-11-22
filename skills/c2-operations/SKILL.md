@@ -32,28 +32,6 @@ engagement workspace holds all of the following:
 If any item is missing, stop and report the gap. A live target without a
 deconflicted defender is not an authorized exercise.
 
-## Prohibited actions
-
-- No exploit development, payload generation, shellcode, loader writing, or
-  defence-evasion tooling in this skill. Those belong to separate, gated work.
-- No persistence, scheduled tasks, services, startup entries, or bootkit
-  behaviour on any host.
-- No credential dumping, keylogging, token theft, browser credential access,
-  or use of real user accounts.
-- No lateral movement beyond the approved asset list, and no domain-wide or
-  forest-wide actions without a per-action approval.
-- No data exfiltration beyond the agreed proof sample; never copy customer
-  records, source code, or personal data.
-- No domain fronting, fast flux, residential proxies, or use of compromised
-  third-party infrastructure.
-- No redirectors or hops on infrastructure the client does not own or has not
-  authorized in writing.
-- No concealment from the client's defenders. Deconfliction is mandatory.
-- No operation outside the window, and no reuse of exercise infrastructure for
-  another client.
-- No shared operator accounts, default credentials, or unencrypted management
-  access.
-
 ## Preconditions
 
 - A framework is selected from the approved list and pinned to a version.

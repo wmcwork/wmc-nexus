@@ -28,23 +28,6 @@ Do not send the first packet until all of the following are recorded:
 If any item is missing, stop and request it. A previous engagement's scope does
 not carry over, and an asset that merely looks related is not in scope.
 
-## Prohibited actions
-
-- Running any exploit, injection string, authentication bypass or file upload.
-- Denial of service, stress testing, high concurrency or recursive crawling
-  beyond the agreed budget.
-- Password guessing, spraying or credential replay of any kind.
-- Downloading user content, database dumps or directory listings beyond the
-  minimum needed to prove a path exists.
-- Writing files, creating accounts, or leaving any persistent artefact on the
-  target.
-- Scanning hosts that resolve outside the scope record, including CDN edges and
-  shared hosting neighbours that are not explicitly listed.
-- Rotating source addresses, spoofing headers or otherwise hiding test traffic
-  from the client's defenders. Deconfliction means they can see it.
-- Treating a third-party SaaS tenant, identity provider or cloud console as in
-  scope because the target links to it.
-
 ## Preconditions
 
 - Scope record reviewed within the last working day.

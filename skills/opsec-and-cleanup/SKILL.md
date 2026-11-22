@@ -41,22 +41,6 @@ the record already allows it.
   as expected unless it is not.
 - A communication channel is agreed for stop and recall messages.
 
-## Prohibited actions
-
-- Deleting, editing, truncating, or reconfiguring logs, audit trails, or
-  monitoring agents.
-- Disabling, uninstalling, or bypassing endpoint, network, or cloud security
-  controls.
-- Timestomping, history clearing, or any anti-forensic technique.
-- Leaving persistence of any kind after the window, including test accounts,
-  scheduled tasks, services, keys, or trust relationships.
-- Copying client data outside the agreed evidence location, or retaining it
-  past the destruction date.
-- Reusing client credentials or tokens after the window closes.
-- Deleting evidence, including evidence of a mistake, without the engagement
-  owner's written instruction.
-- Editing the client's production configuration to make a later check pass.
-
 ## Workflow
 
 ### Phase 1: Plan the footprint

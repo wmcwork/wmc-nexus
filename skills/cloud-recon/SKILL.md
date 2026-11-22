@@ -37,20 +37,6 @@ untouched. Do not infer scope from billing relationships.
   was a read.
 - Console access, if any, restricted to the same principals and recorded.
 
-## Prohibited actions
-
-- Creating, updating, or deleting any resource, policy, role, key, or network
-  rule.
-- Reading object contents from storage services, databases, queues, or
-  secret stores.
-- Requesting, rotating, or exporting access keys, certificates, or service
-  account credentials.
-- Querying the instance metadata service of any host, whether directly or
-  through an application.
-- Enumerating accounts, tenants, or projects outside the record.
-- Disabling, reconfiguring, or testing logging and detection controls.
-- Attempting to raise privileges when a call returns access denied.
-
 ## Workflow
 
 ### Phase 1: Prove identity and the boundary

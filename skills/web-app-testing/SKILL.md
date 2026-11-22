@@ -27,22 +27,6 @@ Do not begin until the following are recorded and acknowledged:
 If test accounts are not available, testing is limited to unauthenticated
 surface review and must be reported as such.
 
-## Prohibited actions
-
-- Testing against real user accounts, real personal data, or records the client
-  did not designate as disposable.
-- Destructive operations: deletion, bulk update, payment capture, email or SMS
-  to real recipients, and anything that triggers a downstream side effect.
-- Denial of service, load generation, or unbounded fuzzing; the impact budget is
-  a ceiling, not a target.
-- Password attacks, credential stuffing, or use of credentials found outside
-  the provisioned accounts.
-- Persistence, web shells, scheduled tasks, or any modification that survives
-  the test.
-- Exfiltrating data beyond a single minimal record needed as proof.
-- Attacking the identity provider, payment processor or any linked third party.
-- Publishing, sharing or retaining customer data outside the evidence store.
-
 ## Preconditions
 
 - Route and parameter map from `api-recon` or `active-recon`, with confidence

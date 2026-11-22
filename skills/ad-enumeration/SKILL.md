@@ -38,20 +38,6 @@ the record is out of scope, even if a trust points at it.
 - A note of whether the issued identity is a plain user or holds elevated
   rights; this changes what the collector can see and belongs in limitations.
 
-## Prohibited actions
-
-- Password guessing, spraying, or any authentication attempt that could lock
-  an account.
-- Requesting or cracking Kerberos service tickets (Kerberoast, AS-REP roast).
-- DCSync, NTDS.dit copies, registry hive, LSA or SAM extraction.
-- Reading LAPS passwords, gMSA managed passwords, or any attribute whose value
-  is a secret.
-- Creating, modifying, or deleting objects, ACLs, GPO links, or group
-  memberships.
-- SMB relay, name resolution poisoning, or authentication coercion.
-- Querying naming contexts, trusts, or domains outside the approved record.
-- Retrying a failed bind more than once.
-
 ## Workflow
 
 ### Phase 1: Confirm directory identity

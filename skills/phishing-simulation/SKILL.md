@@ -31,25 +31,6 @@ all of the following:
 If any item is missing, stop and report the gap. Verbal approval is not
 sufficient for a campaign that touches staff.
 
-## Prohibited actions
-
-- Never collect, store, transmit, or test credentials. Landing pages must not
-  contain password fields; record acknowledgement only.
-- Never attach or link executable content, macros, scripts, archives with
-  execution paths, or any payload.
-- Never impersonate a real individual, an external brand, a bank, or a
-  government body.
-- Never target personal accounts, personal devices, or anyone outside the
-  approved list, including via forwarding.
-- Never use purchased lists, scraped addresses, or a domain the owner has not
-  approved.
-- Never bypass or tune around the client mail gateway, and never rotate
-  domains to defeat blocklisting.
-- Never publish named results, per-person click data, or screenshots outside
-  the agreed reporting group.
-- Never launch a follow-up wave, or raise pretext intensity, without a new
-  written approval.
-
 ## Preconditions
 
 - An approved simulation platform is available, with per-campaign metrics

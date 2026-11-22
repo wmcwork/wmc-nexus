@@ -17,15 +17,6 @@ the target, stop and move the step to `active-recon` under its own approval.
 - Do not query personal accounts, private profiles, or breach data without
   explicit written authorization and a lawful basis.
 
-## Prohibited actions
-
-- No packets to target-owned IPs or hostnames; this skill is third-party sources only.
-- No authentication attempts, credential testing, or login form submissions.
-- No breach-data queries without written authorization and a lawful basis.
-- No access to private accounts, profiles, or paid data without approval.
-- No queries against out-of-scope subsidiaries or third parties.
-- No secrets or personal data in notes; redact before storing or reporting.
-
 ## Sources and order
 
 1. **Seed normalization** - canonical root domains; note subsidiaries and

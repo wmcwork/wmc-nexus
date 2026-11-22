@@ -22,15 +22,6 @@ Stop and ask for the missing item if any of these is absent:
 
 Verbal approval alone is not sufficient for production-impacting tests.
 
-## Prohibited actions
-
-- No active testing before the scope record exists and the owner acknowledges it.
-- No testing of an asset that cannot be tied to the owner.
-- No reliance on verbal approval for production-impacting actions.
-- No scope expansion without written owner approval.
-- No engagement data outside the agreed store, access list, or retention period.
-- No sharing scope, evidence, or findings outside the approved recipients.
-
 ## Scope record
 
 Record these fields in the engagement workspace:

@@ -1,0 +1,36 @@
+WMC NEXUS
+Copyright (C) 2026 WMC NEXUS contributors
+
+This product is a modified version of ARTEX and is distributed under the
+GNU Affero General Public License v3.0. See LICENSE for the full terms.
+
+Upstream projects
+-----------------
+- ARTEX, original project by Autumn-27: https://github.com/Autumn-27/ARTEX
+- ARTEX English edition: https://github.com/BaaRai/ARTEX
+
+The upstream copyright notices and licence terms are preserved. No upstream
+notice is removed by this distribution.
+
+Modifications
+-------------
+Last modified: 2026-11-22
+
+- Rebranded the application as WMC NEXUS, including the web UI, documentation
+  and build metadata.
+- Added English/Turkish localization infrastructure and translated the web UI.
+- Added a first-party skill catalog and a skill authoring standard.
+- Added Windows local setup documentation and helper scripts, including a
+  Docker-free build path and a portable PostgreSQL launcher.
+- Reworked skill documentation for the WMC NEXUS catalog.
+- Removed the upstream issue-triage bot workflow from this repository.
+
+This list is a summary, not an exhaustive diff. The complete source history is
+available in this repository.
+
+Source availability
+-------------------
+Because WMC NEXUS is licensed under AGPL-3.0, anyone who interacts with a
+networked deployment must be able to obtain the corresponding source. Keep the
+repository public, or provide a written offer and a source archive with any
+binary distribution.

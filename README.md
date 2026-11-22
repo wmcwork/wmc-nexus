@@ -11,10 +11,9 @@ Derived from [ARTEX](https://github.com/Autumn-27/ARTEX); upstream AGPL-3.0 term
 WMC NEXUS runs locally with a Go backend and web interface. Tasks, findings, assets, and captured
 traffic remain linked for review and reporting.
 
-[![Release](https://img.shields.io/github/v/release/BaaRai/ARTEX?label=release&color=6b34db)](https://github.com/BaaRai/ARTEX/releases)
-[![License](https://img.shields.io/github/license/BaaRai/ARTEX?color=6b34db)](LICENSE)
-[![CI](https://github.com/BaaRai/ARTEX/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/BaaRai/ARTEX/actions/workflows/ci.yml)
-[![Go](https://img.shields.io/github/go-mod/go-version/BaaRai/ARTEX?color=6b34db)](go.mod)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![Go](https://img.shields.io/badge/go-1.26.10-00ADD8)](go.mod)
+[![Node](https://img.shields.io/badge/node-22%2B-339933)](web/package.json)
 
 [Windows local setup](docs/windows-local-setup.md) · [Windows kurulumu (Türkçe)](docs/windows-local-setup.tr.md) · [Quick start](#quick-start) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Skill source audit](docs/skill-source-audit.md) · [Configuration](#configuration) · [Security](SECURITY.md)
 
@@ -48,8 +47,8 @@ guide. It requires a local PostgreSQL service but does not require Docker.
 The upstream Docker-based development path remains available:
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/OWNER/wmc-nexus.git
+cd wmc-nexus
 cp .env.example .env            # set POSTGRES_PASSWORD (and optionally an LLM key)
 docker compose up -d --build    # builds from this checkout, starts PostgreSQL
 ```
@@ -319,8 +318,8 @@ worker remains confined to the intent it claimed.
 ### Option 1: one-click install script (recommended)
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/OWNER/wmc-nexus.git
+cd wmc-nexus
 ./install.sh
 ```
 
@@ -344,8 +343,8 @@ automatically; it prompts for the connection string without saving it to the rep
 ### Option 2: Docker Compose (manual)
 
 ```bash
-git clone https://github.com/BaaRai/ARTEX.git
-cd ARTEX
+git clone https://github.com/OWNER/wmc-nexus.git
+cd wmc-nexus
 cp .env.example .env            # set POSTGRES_PASSWORD, optionally ANTHROPIC_API_KEY
 docker compose up -d --build
 # → http://localhost:8787
@@ -360,7 +359,7 @@ Legacy SSE servers usually establish the event stream with `GET /sse` and receiv
 
 ### Option 3: prebuilt binaries (Releases)
 
-Download the zip for your platform from [Releases](https://github.com/BaaRai/ARTEX/releases). It
+Download the zip for your platform from [Releases](https://github.com/OWNER/wmc-nexus/releases). It
 contains `artex`, `start.sh` (`start.bat` on Windows), `skills/` and `config.example.json`:
 
 ```bash
@@ -380,7 +379,7 @@ neither.
 
 ```bash
 sha256sum -c SHA256SUMS                           # add --ignore-missing if you downloaded only some zips
-gh attestation verify <zip> --repo BaaRai/ARTEX   # built by this repository's release workflow
+gh attestation verify <zip> --repo OWNER/wmc-nexus   # built by this repository's release workflow
 ```
 
 ### Option 4: build the single binary from source
@@ -612,7 +611,7 @@ Your data is unaffected: `./data`, the `pgdata` volume and `./skills` are not pa
 #### Option 1: one-click update script
 
 ```bash
-cd ARTEX
+cd wmc-nexus
 ./update.sh
 ```
 
@@ -623,7 +622,7 @@ recompile `./artex`; restart the process for it to take effect).
 #### Option 2: Docker Compose (manual)
 
 ```bash
-cd ARTEX
+cd wmc-nexus
 git pull
 docker compose build artex
 docker compose up -d artex
@@ -754,7 +753,7 @@ Operational security properties:
 
 ## About this fork
 
-This repository is the English translation and continuation of ARTEX, originally by [Autumn-27](https://github.com/Autumn-27). The upstream repository is no longer public, so the link points to the author profile. Changes in this fork are tracked in [CHANGELOG.md](CHANGELOG.md), under the same AGPL-3.0 license.
+WMC NEXUS is a branded derivative of ARTEX, originally created by [Autumn-27](https://github.com/Autumn-27) and continued as the English edition at [BaaRai/ARTEX](https://github.com/BaaRai/ARTEX). The upstream project is licensed under AGPL-3.0; this repository preserves those terms and notices. Changes made for WMC NEXUS are recorded in [CHANGELOG.md](CHANGELOG.md) and in [NOTICE](NOTICE).
 
 ---
 
@@ -780,7 +779,7 @@ available to those users**.
 > **Important**: the open source license does not restrict how the software is used. The usage
 > restrictions and disclaimer below are additional terms from the maintainers.
 
-**ARTEX is an offensive-security tool. Use it only against systems you own, or that you are
+**WMC NEXUS is an offensive-security tool. Use it only against systems you own, or that you are
 explicitly authorized to test (your own lab, your organization's assets, or a bug bounty /
 vulnerability disclosure program's targets within its published scope and rules of engagement).
 Any use without authorization violates these terms.**

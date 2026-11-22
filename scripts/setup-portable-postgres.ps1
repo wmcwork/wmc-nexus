@@ -8,11 +8,11 @@ starts it on -Port, creates the "wmc" database, and prints the DSN.
 Re-running is safe: existing binaries, data and database are reused.
 
 .EXAMPLE
-powershell -ExecutionPolicy Bypass -File .\setup-portable-postgres.ps1 -Password "WmcNexus123"
+powershell -ExecutionPolicy Bypass -File .\setup-portable-postgres.ps1 -Password "<your-password>"
 #>
 param(
     [string]$Root = "D:\pgsql",
-    [string]$Password = "WmcNexus123",
+    [Parameter(Mandatory = $true)][string]$Password,
     [int]$Port = 5432
 )
 

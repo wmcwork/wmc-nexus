@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [WMC NEXUS 0.1.0] - 2026-11-22
+
+First branded release derived from the ARTEX codebase.
+
+### Added
+
+- English/Turkish localization infrastructure and a complete Turkish web UI.
+- First-party skill catalog covering scoping, passive/active recon, web and API
+  testing, authentication, Active Directory, cloud, phishing simulation, C2
+  operations, evidence/reporting and OPSEC.
+- Skill authoring standard, catalog metadata and review checklist.
+- Docker-free Windows setup guide and helper scripts, including a portable
+  PostgreSQL launcher.
+- Completion roadmap and Red/Blue/Purple module design notes.
+- Upstream attribution and modification notice (`NOTICE`).
+
+### Changed
+
+- Rebranded the application, web UI and documentation as WMC NEXUS.
+- Reworked the README for the new project, with upstream attribution preserved.
+- Replaced upstream release/update links with project-owned placeholders.
+
+### Removed
+
+- Upstream issue-triage bot workflow.
+
 ## [Unreleased]
 
 ### Added

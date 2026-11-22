@@ -36,7 +36,7 @@ if (-not (Test-Path (Join-Path $data "PG_VERSION"))) {
     $pwFile = Join-Path $env:TEMP "wmc-pg-password.txt"
     Set-Content -Path $pwFile -Value $Password -Encoding ascii -NoNewline
     try {
-        & (Join-Path $bin "initdb.exe") -D $data -U postgres -A scram-sha-256 --pwfile=$pwFile --encoding=UTF8
+        & (Join-Path $bin "initdb.exe") -D $data -U postgres -A scram-sha-256 --pwfile=$pwFile --encoding=UTF8 --locale=C
         if ($LASTEXITCODE -ne 0) { throw "initdb failed with exit code $LASTEXITCODE" }
     }
     finally {

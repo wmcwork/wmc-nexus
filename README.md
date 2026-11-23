@@ -4,18 +4,23 @@
 
 # WMC NEXUS
 
-**A self-hosted security assessment and operations platform.**
+**🇬🇧 English · [🇹🇷 Türkçe](README.tr.md)**
 
-Derived from [ARTEX](https://github.com/Autumn-27/ARTEX); upstream AGPL-3.0 terms and notices apply.
+**Autonomous, LLM-driven security assessment platform — Turkish-first, with an expanded modern offensive skill catalog.**
 
-WMC NEXUS runs locally with a Go backend and web interface. Tasks, findings, assets, and captured
-traffic remain linked for review and reporting.
+Self-hosted and model-agnostic: one Go binary with the web UI embedded, PostgreSQL, and your own
+Anthropic / OpenAI-compatible endpoint or a local Ollama. A modernized fork of
+[ARTEX](https://github.com/Autumn-27/ARTEX) with a **full Turkish UI**, a **28-skill catalog**
+(cloud, Kubernetes, Entra ID, CI/CD supply chain, AiTM phishing and **LLM-agent security**) and a
+**Docker-free Windows path**. AGPL-3.0; upstream terms and notices preserved.
 
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
+[![CI](https://github.com/wmcwork/wmc-nexus/actions/workflows/ci.yml/badge.svg)](https://github.com/wmcwork/wmc-nexus/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/go-1.26.10-00ADD8)](go.mod)
 [![Node](https://img.shields.io/badge/node-22%2B-339933)](web/package.json)
+[![Skills](https://img.shields.io/badge/skills-28-7C3AED)](#skill-catalog)
 
-[Windows local setup](docs/windows-local-setup.md) · [Windows kurulumu (Türkçe)](docs/windows-local-setup.tr.md) · [Quick start](#quick-start) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Skill source audit](docs/skill-source-audit.md) · [Configuration](#configuration) · [Security](SECURITY.md)
+[Quick start](#quick-start) · [Why WMC NEXUS](#why-wmc-nexus) · [Skill catalog](#skill-catalog) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Windows (TR)](docs/windows-local-setup.tr.md) · [Security](SECURITY.md)
 
 </div>
 
@@ -36,6 +41,23 @@ and response evidence. Actions are governed by scope rules, approval gates, and 
   token and turn budgets, a target noise governor, and prompt-injection framing on tool output.
 - **Self-hosted and model-agnostic.** One Go binary with the Next.js UI embedded, PostgreSQL,
   your own Anthropic/OpenAI-compatible endpoint, or a local Ollama.
+
+---
+
+## Why WMC NEXUS
+
+WMC NEXUS keeps the ARTEX engine and adds what a modern, Turkish-speaking red team actually needs:
+
+| | ARTEX (upstream) | **WMC NEXUS** |
+|---|---|---|
+| **Interface language** | English / Chinese | **Full Turkish + English UI** |
+| **Skill catalog** | core set | **28 skills**, incl. 7 modern modules: ADCS, Entra ID / M365, cloud attack paths, Kubernetes, CI/CD supply chain, AiTM phishing, **LLM-agent security** |
+| **Windows install** | Docker | **Docker-free build + portable PostgreSQL launcher** |
+| **Release provenance** | — | Signed binaries, CycloneDX SBOM, SHA256 checksums |
+
+Everything upstream still applies: the autonomous planner/worker loop, the dual asset + exploration
+graphs, evidence-linked findings, human-in-the-loop approvals, scope/deny rules and run budgets.
+See the full list in the [skill catalog](#skill-catalog).
 
 ---
 
@@ -307,6 +329,39 @@ worker remains confined to the intent it claimed.
   through its own proxy.
 - **Single binary**: the Next.js UI is embedded with `go:embed`; PostgreSQL is the only external
   dependency.
+
+---
+
+## Skill catalog
+
+28 first-party skills cover the full engagement lifecycle. Each is a self-contained module the
+planner can authorize per agent. **🆕 marks modules added in WMC NEXUS** that target current
+(2025–2026) attack surfaces.
+
+**Scoping, OPSEC & reporting**
+`engagement-scoping` · `opsec-and-cleanup` · `evidence-and-reporting`
+
+**Reconnaissance**
+`passive-recon` · `active-recon` · `api-recon` · `bbot-recon` · `cloud-recon` · `scopesentry`
+
+**Web & API testing**
+`web-app-testing` · `api-security` · `auth-session-testing` · `playwright-cli` · `php2shell`
+
+**Identity, Active Directory & cloud**
+`ad-enumeration` · `adcs-abuse` 🆕 · `entra-id-attack` 🆕 · `cloud-attack-path` 🆕 · `k8s-container-security` 🆕
+
+**Adversary simulation (C2, phishing, evasion)**
+`c2-operations` · `aitm-phishing` 🆕 · `phishing-simulation` · `edr-bypass-re`
+
+**Code, supply chain & reverse engineering**
+`codeaudit` · `patch-diff` · `cicd-supply-chain` 🆕 · `rea`
+
+**AI / LLM security**
+`llm-agent-security` 🆕 — direct/indirect prompt injection, tool abuse and data-exfiltration
+chains, RAG poisoning and guardrail bypass, measured with PyRIT / garak / AgentDojo.
+
+> Skills are opt-in per agent (**System → Agents → *agent* → Skills**). Authorize only what an
+> engagement needs; all activity stays governed by scope rules, approval gates and budgets.
 
 ---
 

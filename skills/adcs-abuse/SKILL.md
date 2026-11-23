@@ -1,6 +1,6 @@
 ---
 name: adcs-abuse
-description: Active Directory Certificate Services istismarı: Certipy ile ESC1-ESC15 taraması, template/CA abuse, relay, PKINIT, shadow credentials ve RBCD ile domain privilege escalation ve kanıtı.
+description: "Active Directory Certificate Services istismarı: Certipy ile ESC1-ESC15 taraması, template/CA abuse, relay, PKINIT, shadow credentials ve RBCD ile domain privilege escalation ve kanıtı."
 ---
 # ADCS Abuse (ESC1–ESC15)
 

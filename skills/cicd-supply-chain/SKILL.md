@@ -1,6 +1,6 @@
 ---
 name: cicd-supply-chain
-description: CI/CD ve yazılım tedarik zinciri saldırıları: GitHub Actions/GitLab pipeline abuse, secret sızıntısı, OIDC trust, dependency confusion ve artifact poisoning ile impact kanıtı.
+description: "CI/CD ve yazılım tedarik zinciri saldırıları: GitHub Actions/GitLab pipeline abuse, secret sızıntısı, OIDC trust, dependency confusion ve artifact poisoning ile impact kanıtı."
 ---
 # CI/CD & Supply Chain Security
 

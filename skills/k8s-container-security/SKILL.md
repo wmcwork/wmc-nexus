@@ -1,6 +1,6 @@
 ---
 name: k8s-container-security
-description: Kubernetes ve konteyner güvenliği: dışarıdan/aşağıdan küme keşfi, RBAC ve service account istismarı, pod'dan node/cloud'a kaçış, impact kanıtı ve sertleştirme.
+description: "Kubernetes ve konteyner güvenliği: dışarıdan/aşağıdan küme keşfi, RBAC ve service account istismarı, pod'dan node/cloud'a kaçış, impact kanıtı ve sertleştirme."
 ---
 # Kubernetes & Container Security
 

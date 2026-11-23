@@ -1,6 +1,6 @@
 ---
 name: cloud-attack-path
-description: Bulut kontrol düzlemi saldırı yolları: AWS/Azure/GCP'de IAM privilege escalation, IMDS/managed identity token hırsızlığı, depolama ve cross-account trust istismarı ve kanıtı.
+description: "Bulut kontrol düzlemi saldırı yolları: AWS/Azure/GCP'de IAM privilege escalation, IMDS/managed identity token hırsızlığı, depolama ve cross-account trust istismarı ve kanıtı."
 ---
 # Cloud Attack Paths (AWS / Azure / GCP)
 

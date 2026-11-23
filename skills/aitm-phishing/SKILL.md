@@ -1,6 +1,6 @@
 ---
 name: aitm-phishing
-description: AiTM / ters-proxy phishing ve MFA bypass: Evilginx3 + Gophish ile altyapı, phishlet, oturum çerezi ele geçirme, kampanya ölçümü ve teardown.
+description: "AiTM / ters-proxy phishing ve MFA bypass: Evilginx3 + Gophish ile altyapı, phishlet, oturum çerezi ele geçirme, kampanya ölçümü ve teardown."
 ---
 # AiTM Phishing & MFA Bypass
 

@@ -1,6 +1,6 @@
 ---
 name: llm-agent-security
-description: LLM ve AI ajan güvenliği: doğrudan/dolaylı prompt injection, tool abuse ve veri sızdırma zincirleri, RAG zehirleme, guardrail bypass; PyRIT/garak/AgentDojo ile ölçüm ve kanıt.
+description: "LLM ve AI ajan güvenliği: doğrudan/dolaylı prompt injection, tool abuse ve veri sızdırma zincirleri, RAG zehirleme, guardrail bypass; PyRIT/garak/AgentDojo ile ölçüm ve kanıt."
 ---
 # LLM / AI Agent Security
 

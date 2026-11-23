@@ -1,6 +1,6 @@
 ---
 name: entra-id-attack
-description: Entra ID / Microsoft 365 kimlik saldırıları: tenant recon, token/PRT hırsızlığı, device-code ve consent phishing, AzureHound graf analizi, Graph ile privilege path çıkarma ve impact kanıtı.
+description: "Entra ID / Microsoft 365 kimlik saldırıları: tenant recon, token/PRT hırsızlığı, device-code ve consent phishing, AzureHound graf analizi, Graph ile privilege path çıkarma ve impact kanıtı."
 ---
 # Entra ID / M365 Kimlik Saldırıları
 

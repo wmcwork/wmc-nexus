@@ -47,7 +47,7 @@ guide. It requires a local PostgreSQL service but does not require Docker.
 The upstream Docker-based development path remains available:
 
 ```bash
-git clone https://github.com/OWNER/wmc-nexus.git
+git clone https://github.com/wmcwork/wmc-nexus.git
 cd wmc-nexus
 cp .env.example .env            # set POSTGRES_PASSWORD (and optionally an LLM key)
 docker compose up -d --build    # builds from this checkout, starts PostgreSQL
@@ -318,7 +318,7 @@ worker remains confined to the intent it claimed.
 ### Option 1: one-click install script (recommended)
 
 ```bash
-git clone https://github.com/OWNER/wmc-nexus.git
+git clone https://github.com/wmcwork/wmc-nexus.git
 cd wmc-nexus
 ./install.sh
 ```
@@ -343,7 +343,7 @@ automatically; it prompts for the connection string without saving it to the rep
 ### Option 2: Docker Compose (manual)
 
 ```bash
-git clone https://github.com/OWNER/wmc-nexus.git
+git clone https://github.com/wmcwork/wmc-nexus.git
 cd wmc-nexus
 cp .env.example .env            # set POSTGRES_PASSWORD, optionally ANTHROPIC_API_KEY
 docker compose up -d --build
@@ -359,7 +359,7 @@ Legacy SSE servers usually establish the event stream with `GET /sse` and receiv
 
 ### Option 3: prebuilt binaries (Releases)
 
-Download the zip for your platform from [Releases](https://github.com/OWNER/wmc-nexus/releases). It
+Download the zip for your platform from [Releases](https://github.com/wmcwork/wmc-nexus/releases). It
 contains `artex`, `start.sh` (`start.bat` on Windows), `skills/` and `config.example.json`:
 
 ```bash
@@ -379,7 +379,7 @@ neither.
 
 ```bash
 sha256sum -c SHA256SUMS                           # add --ignore-missing if you downloaded only some zips
-gh attestation verify <zip> --repo OWNER/wmc-nexus   # built by this repository's release workflow
+gh attestation verify <zip> --repo wmcwork/wmc-nexus   # built by this repository's release workflow
 ```
 
 ### Option 4: build the single binary from source

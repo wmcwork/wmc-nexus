@@ -22,6 +22,10 @@ Anthropic / OpenAI-compatible endpoint or a local Ollama. A modernized fork of
 
 [Quick start](#quick-start) · [Why WMC NEXUS](#why-wmc-nexus) · [Skill catalog](#skill-catalog) · [Screenshots](#screenshots) · [How it works](#how-it-works) · [Install](#installation) · [Windows (TR)](docs/windows-local-setup.tr.md) · [Security](SECURITY.md)
 
+<br/>
+
+<img src="screenshots/dashboard.png" alt="WMC NEXUS — dashboard overview: active tasks, confirmed findings, LLM token usage and the live activity feed" width="100%" />
+
 </div>
 
 ---

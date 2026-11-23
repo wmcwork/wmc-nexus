@@ -22,6 +22,10 @@ fork'u. AGPL-3.0; üst kaynak lisans ve bildirimleri korunur.
 
 [Hızlı başlangıç](#hızlı-başlangıç) · [Neden WMC NEXUS](#neden-wmc-nexus) · [Skill kataloğu](#skill-katalogu) · [Nasıl çalışır](#nasıl-çalışır) · [Kurulum](#kurulum) · [Windows kurulumu](docs/windows-local-setup.tr.md) · [Güvenlik](SECURITY.md)
 
+<br/>
+
+<img src="screenshots/dashboard.png" alt="WMC NEXUS — genel bakış paneli: aktif görevler, doğrulanmış bulgular, LLM token kullanımı ve canlı etkinlik akışı" width="100%" />
+
 </div>
 
 ---
